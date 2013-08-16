@@ -972,7 +972,7 @@ rebuild_pred_into(OMC,NMC,AssertZ,OtherTraits):-
       forall(member(+PP,OtherTraits),asserta(tlbugger:rbuild_pred_impl_cache_pp(NC,PP))),
       once(tlbugger:rbuild_pred_impl_cache_pp(NC,(built_in))->(redefine_system_predicate(NF/A),unlock_predicate(NF/A));true),
       show_call(why,must_pi(abolish(NF/A))),
-      show_call(why,must_pi(abolish(NF/A))),
+      %show_call(why,must_pi(abolish(NF/A))),
       garbage_collect_clauses,
       ignore(convert_to_dynamic(NM,NF,A)),
       garbage_collect_clauses,
