@@ -8,6 +8,7 @@
 :- set_module(class(library)).
 
 :- use_module(library(dictoo)).
+:- use_module(library(attvar_serializer)).
 
 
 %% lock_vars( :TermVar) is semidet.
@@ -32,11 +33,15 @@ lock_these_vars_now(Notify,N0,[Var|Vars],PVs):-!,
    lock_these_vars_now(Notify,N,Vars,PVs).
 lock_these_vars_now(_,_,[],_).
 
-%vl:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
+
 vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
     arg(N,VVs,Was),N\==N,Was==VarValue,!,
     dmsg(collide_locked_var(Notify,VarValue)),
     call(Notify,VarValue).
+vl:attr_unify_hook(_,VarValue):- verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
+
+vl:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
+vl:attr_unify_hook(_,_):- thread_self_main,!.
 vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
   \+ (var(VarValue);verbatum_var(VarValue)),!,
   dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue)),
