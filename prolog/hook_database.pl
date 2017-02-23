@@ -9,11 +9,8 @@
             current_module_from/2,
             attributes_equal/3,
             
-            attr_bind/2,attr_bind/1,
-            split_attrs/3,
-            dont_make_cyclic/1,
             
-            variant_i/2,av_comp/2,
+            
             is_visible_module/1,
             hb_to_clause/3,
             paina/1,pain/1,painz/1,
@@ -37,8 +34,6 @@
             call_provider/2,
             clause_true/1,
             modulize_head_fb/4,
-            unify_bodies/2,
-            attr_bind/1,
             clause_asserted/1,clause_asserted/2,clause_asserted/3,
             clause_asserted_i/1,clause_asserted_i/2,clause_asserted_i/3,
             clause_i/1,clause_i/2,clause_i/3,
@@ -47,7 +42,7 @@
             
             apply_term/3,
             clause_safe/2,
-            debugCallWhy/2,
+            
             erase_safe/2,
             eraseall/2,
             find_and_call/1,
@@ -60,12 +55,11 @@
             retract_eq/1,
             safe_univ/2,
             safe_univ0/2,
-            clausify_attributes/2,
-            clausify_attributes4/4,
             my_module_sensitive_code/1
           ]).
 
 :- meta_predicate clause_asserted_i(:).
+:- set_module(class(library)).
 
 :- meta_predicate
         ain(:),
@@ -87,7 +81,6 @@
         clause_asserted(:, ?),
         clause_asserted(:, ?, -),
         clause_safe(?, ?),
-        debugCallWhy(?, 0),
         eraseall(+, +),
         find_and_call(+, +, ?),
         module_of(+,+,?),
@@ -96,8 +89,7 @@
         mpred_mop(+, 1, ?),
         mpred_op_prolog(?, :),
         mpred_op_prolog0(1,?),
-        my_module_sensitive_code(?),
-        dont_make_cyclic(0).
+        my_module_sensitive_code(?).
 
 :- module_transparent
          find_module/2,
@@ -110,11 +102,9 @@
         my_module_sensitive_code/1,
         assertz_new/1,
         call_provider/2,
-        dont_make_cyclic/1,
+        
         is_visible_module/1,
         clause_asserted/3,
-        clausify_attributes/2,
-        clausify_attributes4/4,
         erase_safe/2,
         current_module_from/2,
         find_and_call/1,
@@ -135,13 +125,9 @@
 
             if_flag_true/2,
             current_module_from/2,
-            attributes_equal/3,
+            attributes_equal/3,            
 
-            attr_bind/2,attr_bind/1,
-            split_attrs/3,
-            dont_make_cyclic/1,
-
-            variant_i/2,av_comp/2,
+            
             is_visible_module/1,
             hb_to_clause/3,
             paina/1,pain/1,painz/1,
@@ -162,8 +148,6 @@
             call_provider/2,
             clause_true/1,
             modulize_head_fb/4,
-            unify_bodies/2,
-            attr_bind/1,
             clause_asserted/1,clause_asserted/2,clause_asserted/3,
             clause_asserted_i/1,clause_asserted_i/2,clause_asserted_i/3,
             clause_i/1,clause_i/2,clause_i/3,
@@ -172,7 +156,7 @@
 
 
             clause_safe/2,
-            debugCallWhy/2,
+            
             erase_safe/2,
             eraseall/2,
             find_and_call/1,
@@ -185,15 +169,9 @@
             retract_eq/1,
             safe_univ/2,
             safe_univ0/2,
-            clausify_attributes/2,
-            clausify_attributes4/4,
             my_module_sensitive_code/1.
-:- if(false).
-:- else.
-:- include('logicmoo_util_header.pi').
-:- endif.
 
-:- reexport(library(attvar_reader)).
+:- reexport(library(clause_attvars)).
 
 baseKB:first_std_provider(_,_,mpred_op_prolog).
 
@@ -239,14 +217,6 @@ if_flag_true(TF,Goal):-
    trace_or_throw(if_flag_true(TF,Goal)))).
 */
 
-%= 	 	 
-
-%% debugCallWhy( ?Why, :GoalC) is semidet.
-%
-% Debug Call Generation Of Proof.
-%
-debugCallWhy(Why, C):- notrace(wdmsg(Why)),trace,catch(dtrace(C),E,wdmsg(cont_debugCallWhy(E,Why, C))).
-
 :- export(mpred_op_prolog/2).
 :- module_transparent(mpred_op_prolog/2).
 % mpred_op_prolog(P):-mpred_split_op_data(P,OP,Term),mpred_op_prolog(OP,Term).
@@ -284,7 +254,7 @@ mpred_mop(M,Op,Term):-append_term(Op,Term,CALL),find_and_call(M,M,CALL).
 :-meta_predicate(find_and_call(+,+,?)).
 
 
-find_and_call(C,G):-loop_check(on_x_rtrace(C:G)).
+find_and_call(C,G):-loop_check(on_x_debug(C:G)).
 
 %= 	 	 
 
@@ -296,7 +266,7 @@ find_and_call(_,_,C:G):-current_predicate(_,C:G),!,find_and_call(C,G).
 find_and_call(_,C,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
 find_and_call(C,_,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
 find_and_call(_,_,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
-find_and_call(C,M,  G):-dtrace,C:on_x_rtrace(M:G).
+find_and_call(C,M,  G):-dtrace,C:on_x_debug(M:G).
 
 
 current_module_ordered(user).
@@ -310,7 +280,7 @@ current_module_ordered(X):-current_module(X).
 %
 find_and_call(C:G):-current_predicate(_,C:G),!,find_and_call(C,G).
 find_and_call(_:G):-current_predicate(_,R:G),!,find_and_call(R:G).
-find_and_call(G):-current_predicate(_,G),!,loop_check(on_x_rtrace(G)).
+find_and_call(G):-current_predicate(_,G),!,loop_check(on_x_debug(G)).
 find_and_call(G):-current_predicate(_,R:G),!,find_and_call(R:G).
 
 module_of(O,G,M):-predicate_property(O:G,imported_from(M)),!.
@@ -577,17 +547,6 @@ expand_to_hb( M:((H :- B)),M:H,B):-!.
 expand_to_hb( ((H :- B)),H,B):-!.
 expand_to_hb( H,  H,  true).
 
-clausify_attributes(V,V):- \+ current_prolog_flag(assert_attvars,true),!.
-clausify_attributes(V,V):- \+ compound(V),!.
-clausify_attributes(:-(V),:-(V)):-!.
-clausify_attributes(M:Data,M:THIS):- !,clausify_attributes(Data,THIS).
-clausify_attributes([H|T],[HH|TT]):- !,clausify_attributes(H,HH),clausify_attributes(T,TT).
-%clausify_attributes((H,T),(HH,TT)):- !,clausify_attributes(H,HH),clausify_attributes(T,TT).
-clausify_attributes(Data,THIS):- copy_term(Data,DataC,Attribs),expand_to_hb(DataC,H,B),clausify_attributes4(H,B,Attribs,THIS).
-
-clausify_attributes4(H,B,[],(H:-B)):-!.
-clausify_attributes4(H,B,Extra,(H:-attr_bind(Extra,B))).
-
 
 
 %% is_visible_module( +Op) is semidet.
@@ -605,38 +564,6 @@ is_visible_module(system).
 simple_var(Var):- var(Var),\+ attvar(Var).
 
 to_mod_if_needed(M,B,MB):- B==true-> MB=B ; MB = M:B.
-
-split_attrs(B,true,B0):-var(B),!,B0=call(B).
-split_attrs(call(C),A,B):-!,split_attrs(C,A,B).
-split_attrs(M:B,ATTRS,BODY):- is_visible_module(M),!, split_attrs(B,ATTRS,BODY).
-split_attrs(B,true,B0):-ground(B),!,B0=B.
-
-/*
-split_attrs(B,ATTRS,BODY):- \+ sanity((simple_var(ATTRS),simple_var(BODY))),
-    dtrace,dumpST,dtrace(split_attrs(B,ATTRS,BODY)).
-*/
-split_attrs(M:attr_bind(G,Call),M:attr_bind(G),Call):- !.
-split_attrs(attr_bind(G,Call),attr_bind(G),Call):- !.
-split_attrs(true,true,true):-!.
-split_attrs(_:true,true,true):-!.
-split_attrs(M:A,M:ATTRS,M:BODY):- !,split_attrs(A,ATTRS,BODY).
-split_attrs(attr_bind(G),attr_bind(G),true):- !.
-split_attrs((A,B),ATTRS,BODY):- !,
-  split_attrs(A,AA,AAA),
-  split_attrs(B,BB,BBB),!,
-  conjoin(AA,BB,ATTRS),
-  conjoin(AAA,BBB,BODY).
-
-split_attrs(AB,true,AB).
-
-:- meta_predicate attr_bind(+).
-:- module_transparent attr_bind/1.
-attr_bind(Attribs):- dont_make_cyclic(maplist(call,Attribs)).
-
-:- meta_predicate attr_bind(+,0).
-:- module_transparent attr_bind/2.
-attr_bind(Attribs,Call):-maplist(call,Attribs),Call.
-
 
 %% hb_to_clause( ?H, ?B, ?Clause ) is semidet.
 %
@@ -727,15 +654,6 @@ clause_asserted_i(MH,B,R):- ground(MH:B),!,system:clause(MH,B,R),system:clause(M
 clause_asserted_i(MH,B,R):- copy_term(MH:B,MHB),clause_i(MH,B,R),variant(MH:B,MHB).
 
 
-variant_i(A,B):- A=@=B,!.
-variant_i(A,B):- copy_term_nat(A:B,AA:BB), \+(AA=@=BB),!,fail.
-variant_i(A,B):- term_variables(A,AV),AV\==[], 
-   term_variables(B,BV),
-   (maplist(av_comp,AV,BV)->!;(dtrace,maplist(av_comp,AV,BV))).
-
-av_comp(A,B):-mpred_get_attrs(A,AA),mpred_get_attrs(B,BB),AA=@=BB,!.
-av_comp(A,B):-mpred_get_attrs(A,attr(_,_,AB)),!,AB\==[],mpred_get_attrs(B,attr(_,_,AB)).
-av_comp(_A,_B):-!.
 
 
 put_clause_ref(_Ref,_V):- !.
@@ -745,9 +663,6 @@ put_clause_ref(Ref,V):-put_attr(V,cref,Ref).
 remove_term_attr_type(Term,Mod):- notrace((term_attvars(Term,AVs),maplist(del_attr_type(Mod),AVs))).
 
 :- op(700,xfx,'=@=').
-
-dont_make_cyclic(G):-skipWrapper,!,call(G).
-dont_make_cyclic(G):-cyclic_break(G),!,G,cyclic_break(G).
 
 
 attribute_is_info(name_variable(_Var,  _Name)).
@@ -769,56 +684,15 @@ attributes_equal(L,R,[H|TODO]):- select(H,L,LL), select(HH,R,RR),H =HH,!,
 %
 clause_i(HB):- expand_to_hb(HB,H,B)->clause_i(H,B,_).
 clause_i(H,B):- clause_i(H,B,_).
-% clause_i(H00,B000,Ref):- unnumbervars((H00:B000),(H:B0)), split_attrs(B0,_A,B),!,clause_i(H,B,Ref), (clause_i(HH,BB,Ref),HH=@=H,BB=@=B,A).
-% clause_i(H,B,Ref):- system:clause(H,AB,Ref), (must(split_attrs(AB,A,B0)->A),B=B0).
 
 % TODO track which predicate have attributeds vars
 clause_i(H0,B0,Ref):- \+ current_prolog_flag(assert_attvars,true) ,!, system:clause(H0,B0,Ref).
+clause_i(H0,B0,Ref):- clause_attv(H0,B0,Ref).
 
-clause_i(H,B,R):- nonvar(R),!, 
-  dont_make_cyclic((must(system:clause(H0,BC,R)),must(split_attrs(BC,AV,B0)),!,must((AV,!,B=B0,H=H0)))).
-
-clause_i(H0,B0,Ref):-
- copy_term(H0:B0, H:B, Attribs),
- dont_make_cyclic((    
-    (system:clause(H,BC,Ref) *-> 
-      must(split_attrs(BC,AV,BB)) -> unify_bodies(B,BB) -> AV -> (H0=H,B0=B,
-        maplist(call,Attribs))))).
-
-unify_bodies(B,B):-!.
-unify_bodies(B1,B2):-strip_module(B1,_,BB1),strip_module(B2,_,BB2),!,BB1=BB2.
-
-/*
-
-clause_i(MH,B,Ref):- 
- dont_make_cyclic((
-   % must(modulize_head(MH,M:H)),
-   system:clause(MH,BMC,Ref),
-    ((compound(BMC),BMC = attr_bind(Attribs,BOUT)) -> (attr_bind(Attribs)) ; BMC=BOUT))),
- dont_make_cyclic((BOUT=B)).
-*/
-/*
-clause_i(MH,B,Ref):- !,
- no_repeats(Ref,(must(modulize_head(MH,M:H)),system:clause(M:H,BMC,Ref))),
-   ((compound(BMC),BMC = attr_bind(Attribs,BM)) -> true ; (BMC=BM -> Attribs=[])),
- BM = B,
- once(attr_bind(Attribs)).
-
-  */
-/*
-clause_i(H0,BIn,Ref):- 
-    copy_term_nat(H0:BIn,H:B0),
-    system:clause(H,BC,Ref),
-  (must(notrace(split_attrs(BC,AV,B))) -> ( B=B0 -> AV -> H=H0 -> BIn=B)).
-*/
-
-
-
-
-assert_i(HB):-clausify_attributes(HB,CL),assert(CL).
+assert_i(HB):- clausify_attributes(HB,CL),assert(CL).
 asserta_i(HB):-clausify_attributes(HB,CL),system:asserta(CL).
 assertz_i(HB):-clausify_attributes(HB,CL),system:assertz(CL).
-retract_i(HB):-expand_to_hb(HB,H,B),(clause_i(H,B,Ref)*->erase(Ref)).
+retract_i(HB):- expand_to_hb(HB,H,B), (clause_i(H,B,Ref)*->erase(Ref)).
 retractall_i(H):-expand_to_hb(H,HH,_),forall(clause_i(HH,_,Ref),erase(Ref)).
 
 

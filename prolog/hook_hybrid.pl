@@ -92,6 +92,7 @@
          with_pfa(1,+),
          only_3rd(1,*,*,*).
 
+:- set_module(class(library)).
 
 :- module_transparent
       convert_to_dynamic/1,
@@ -117,6 +118,7 @@
 :- reexport(virtualize_source).
 :- reexport(lockable_vars).
 :- reexport(hook_database).
+
 
 
 %% with_source_module( +NewModule, :GoalGoal) is semidet.
@@ -145,7 +147,7 @@ call_from_module(NewModule,Goal):-
    '$current_typein_module'(OldModule),
    '$current_source_module'(OldSModule),
    strip_module(Goal,_,Call),
-    each_call_cleanup(
+    scce_orig(
       ('$set_typein_module'(NewModule),'$set_source_module'(NewModule)), 
       NewModule:Call,
       ('$set_source_module'(OldSModule),'$set_typein_module'(OldModule))).
@@ -386,7 +388,7 @@ save_was(Was,CallerMt, PredMt, P):- functor(P,F,A), save_was(Was,CallerMt, PredM
 :-module_transparent(with_pfa/2).
 :-export(with_pfa/2).
 
-%= 	 	 mudDescription kb_dynamic
+%= 	 	 mudDescription kb_shared
 
 %% with_pfa( :PRED1With, +PI) is semidet.
 %
@@ -585,7 +587,7 @@ def_meta_predicate(F,S,E):- trace_or_throw(def_meta_predicate(F,S,E)).
 remove_pred(_,F,A):-member(_:F/A,[_:delete_common_prefix/4]),!.
 remove_pred(M,F,A):- 
  on_x_log_cont((
-  w_tl(set_prolog_flag(access_level,system),
+  locally(set_prolog_flag(access_level,system),
     ((functor(P,F,A),
     redefine_system_predicate(M:F/A),
     redefine_system_predicate(F/A),
@@ -763,18 +765,7 @@ is_static_predicate_3(PredMt,F,A):-
 
 %= 	 	 
 
-is_dynamic_module(user).
-is_dynamic_module(baseKB).
-is_dynamic_module(baseKB).
-is_dynamic_module(lmcache).
-is_dynamic_module(t_l).
-is_dynamic_module(prolog).
-is_dynamic_module(M):- ereq(mtCycL(M)).
 
-is_static_module(system).
-is_static_module(M):- is_dynamic_module(M),!,fail.
-is_static_module(M):- module_property(M,class(library)),!.
-is_static_module(M):- module_property(M,class(system)),!.
 
 %% is_static_predicate( :TermA) is semidet.
 %
@@ -787,13 +778,13 @@ is_static_predicate((H:-_)):-!,nonvar(H),is_static_predicate(H).
 is_static_predicate(~(H)):-!,nonvar(H),is_static_predicate(H).
 is_static_predicate(M:'~'(H)):-!,nonvar(H),is_static_predicate(M:H).
 is_static_predicate(M:(H:-_)):-!,nonvar(H),!,is_static_predicate(M:H).
-is_static_predicate(M:F/A):-!,atom(F),current_predicate(M:F/A),!,functor(FA,F,A),is_static_predicate(M:FA).
-is_static_predicate(M:F//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(FA,F,A),is_static_predicate(M:FA).
+is_static_predicate(M:F/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
+is_static_predicate(M:F//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
 is_static_predicate(M:F):-atom(F),predicate_property(M:F,static),!,predicate_property(F,number_of_clauses(_)),\+ predicate_property(F,dynamic).
-is_static_predicate((M:F)//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(FA,F,A),is_static_predicate(M:FA).
-is_static_predicate((M:F)/A):-!,atom(F),current_predicate(M:F/A),!,functor(FA,F,A),is_static_predicate(M:FA).
-is_static_predicate(F/A):-!,atom(F),current_predicate(F/A),!,functor(FA,F,A),is_static_predicate(FA).
-is_static_predicate(F//A2):-A is A2+2, !,atom(F),current_predicate(F/A),!,functor(FA,F,A),is_static_predicate(FA).
+is_static_predicate((M:F)//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
+is_static_predicate((M:F)/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
+is_static_predicate(F/A):-!,atom(F),current_predicate(F/A),!,functor(H,F,A),is_static_predicate(H).
+is_static_predicate(F//A2):-A is A2+2, !,atom(F),current_predicate(F/A),!,functor(H,F,A),is_static_predicate(H).
 
 is_static_predicate(FA):- predicate_property(FA,dynamic),!,fail.
 is_static_predicate(FA):- predicate_property(FA,undefined),!,fail.
@@ -845,10 +836,10 @@ convert_to_dynamic(FA):- strip_module(FA,PredMt,FA0), get_functor(FA0,F,A), conv
 % Convert Converted To Dynamic.
 %
 convert_to_dynamic(PredMt,F,A):-  functor(C,F,A), predicate_property(PredMt:C,dynamic),!.
-convert_to_dynamic(PredMt,F,A):-  functor(C,F,A),\+ predicate_property(PredMt:C,_),if_defined(kb_dynamic(PredMt:C),(PredMt:((dynamic(PredMt:F/A),multifile(PredMt:F/A),export(PredMt:F/A))))),!.
+convert_to_dynamic(PredMt,F,A):-  functor(C,F,A),\+ predicate_property(PredMt:C,_),if_defined(kb_shared(PredMt:C),(PredMt:((dynamic(PredMt:F/A),multifile(PredMt:F/A),export(PredMt:F/A))))),!.
 convert_to_dynamic(PredMt,F,A):-  functor(C,F,A),findall((C:-B),clause(C,B),List),rebuild_as_dyn(PredMt,C,F,A),maplist(assertz,List),!.
 
-% kb_dynamic = 
+% kb_shared = 
 
 
 
@@ -981,5 +972,5 @@ rebuild_pred_into(OMC,NMC,AssertZ,OtherTraits):-
       retractall(tlbugger:rbuild_pred_impl_cache_pp(NC,_))
       )).
 
-% :- ensure_loaded(logicmoo_util_shared_dynamic).
+% :- ensure_loaded(hook_database).
 

@@ -1,61 +1,78 @@
 :- module(lockable_vars,[
-   with_local_vars_locked/2,
-   with_local_vars_locked/3
+   lock_vars/1,
+   unlock_vars/1,
+   with_vars_locked/2,
+   with_vars_locked/3   
    ]).
 
-:- meta_predicate dual_notify(1,1,?).
+:- set_module(class(library)).
+
+:- use_module(library(dictoo)).
 
 
-%% lock_local_vars( :TermVar) is semidet.
+%% lock_vars( :TermVar) is semidet.
 %
 % Lock Variables.
 %
 
-lock_local_vars(Term):-lock_local_vars(fail,Term).
+lock_vars(Term):-lock_vars(lockable_vars:just_fail,Term).
 
-lock_local_vars( _Notify, _Term):-!.
-lock_local_vars(_Notify,_Var):-  current_prolog_flag(unsafe_speedups , true) ,!.
-lock_local_vars( Notify, Term):-  must(notrace((NotifyP=call(Notify),term_variables(Term,Vs),maplist(lock_each_local_var(NotifyP,Vs),Vs)))).
+just_fail(_):-fail.
+skip_varlocks:- current_prolog_flag(unsafe_speedups , true) ,!.
 
-lock_each_local_var(Notify,Vs,Var):- get_attr(Var,vll,when_rest(NotifyP,RestP)),delete_eq(Vs,Var,Rest),
-   append(Rest,RestP,NewRest),put_attr(Var,vll,when_rest(dual_notify(Notify,NotifyP),NewRest)).
-lock_each_local_var(Notify,Vs,Var):- delete_eq(Vs,Var,Rest),put_attr(Var,vll,when_rest(Notify,Rest)).
-% lock_each_local_var(_,_ ,  Var):-var(Var),!,only_stars(Var).
+:- meta_predicate(lock_vars(1,+)).
+lock_vars(_Notify,Var):- (skip_varlocks; Var==[]),!.
+%lock_vars(Notify,[Var]):- !, put_attr(Var,vl,when_rest(Notify,1,vv(Var))).
+lock_vars(Notify,[Var|Vars]):- !, PVs=..[vv|[Var|Vars]], lock_these_vars_now(Notify,1,[Var|Vars],PVs),!.
+lock_vars(Notify,Term):- term_variables(Term,Vs),lock_vars(Notify,Vs).
 
-dual_notify(N1,N2,Value):-ignore( \+ call(N1,Value)),ignore( \+ call(N2,Value)).
+lock_these_vars_now(Notify,N0,[Var|Vars],PVs):-
+   put_attr(Var,vl,when_rest(Notify,N0,PVs)), N is N0+1,
+   lock_these_vars_now(Notify,N,Vars,PVs).
+lock_these_vars_now(_,_,[],_).
 
-%vll:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
-vll:attr_unify_hook(when_rest(Notify,RestOfVars),VarValue):-
-  not_member_eq(VarValue,RestOfVars),
-  \+ (var(VarValue);verbatum_var(VarValue)),
-  nb_setarg(1,Notify,wdmsg),
- /* dumpST,
-  dmsg(error_locked_var(Notify,VarValue)),!,
-  dtrace,*/
-  dmsg(error_locked_var(Notify,VarValue)),
+%vl:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
+vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
+    arg(N,VVs,Was),N\==N,Was==VarValue,!,
+    dmsg(collide_locked_var(Notify,VarValue)),
+    call(Notify,VarValue).
+
+vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
+  \+ (var(VarValue);verbatum_var(VarValue)),!,
+  dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue)),
   call(Notify,VarValue),!.
-vll:attr_unify_hook(_,_).
+
+vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
+      (get_attr(VarValue,vl,when_rest(Notify,N,VVs))
+      -> true ; 
+         put_attr(VarValue,vl,when_rest(Notify,N,VVs))).
 
 
-%% unlock_local_vars( :TermVar) is semidet.
+%% unlock_vars( :TermOrVar) is semidet.
 %
 % Unlock Variables.
 %
 
-%unlock_local_vars(_Var):- current_prolog_flag(unsafe_speedups , true) ,!.
-unlock_local_vars( Var):- attvar(Var),!,del_attr(Var,vll).
-unlock_local_vars(Term):- must(notrace((term_attvars(Term,Vs),maplist(unlock_local_vars,Vs)))).
+unlock_vars(_Var):- skip_varlocks,!.
+unlock_vars(Term):- must(notrace((term_attvars(Term,Vs),maplist(delete_vl,Vs)))).
+
+delete_vl( Var):- del_attr(Var,vl).
 
 :- use_module(library(each_call_cleanup)).
 
-:- meta_predicate(with_local_vars_locked(1,0)).
-with_local_vars_locked(Notify,Goal):- term_variables(Goal,Vs),with_local_vars_locked(Notify,Vs,Goal).
-
-:- meta_predicate(with_local_vars_locked(1,?,0)).
-with_local_vars_locked(_Notify,_Vs,_Goal):- \+ thread_self(main),!.
-with_local_vars_locked(Notify,Vs,Goal):-
+:- meta_predicate(with_vars_locked(1,:)).
+with_vars_locked(_Notify,Goal):- skip_varlocks,!,Goal.
+with_vars_locked(Notify,Goal):- term_variables(Goal,Vs),
  each_call_cleanup(
-   lock_local_vars(Notify,Vs),
+   lock_vars(Notify,Vs),
       Goal,
-     unlock_local_vars(Vs)).
+     maplist(delete_vl,Vs)).
+
+:- meta_predicate(with_vars_locked(1,?,:)).
+with_vars_locked(_Notify,_Vs,Goal):- skip_varlocks,!,Goal.
+with_vars_locked(Notify,Vs,Goal):-
+ each_call_cleanup(
+   lock_vars(Notify,Vs),
+      Goal,
+     maplist(delete_vl,Vs)).
 
