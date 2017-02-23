@@ -1,5 +1,5 @@
 name(hook_hybrid).
-version('0.0.7').
+version('0.0.8').
 title('Hook assert retract call of *specific* predicates').
 keywords([term_expansion,database,utility]).
 author( 'Douglas Miles', 'http://www.linkedin.com/in/logicmoo' ).
