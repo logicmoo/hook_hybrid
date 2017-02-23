@@ -8,7 +8,7 @@ Using SWI-Prolog 7.1 or later:
 
 ```prolog
 
-    ?- pack_install('https://github.com/TeamSPoon/pack_hook_hybrid.git').
+    ?- pack_install('https://github.com/TeamSPoon/hook_hybrid.git').
 
 ```
 
