@@ -35,14 +35,21 @@
           ignore_mpreds_in_file/0,
           (kb_shared)/1,
           clause_b/1,
-          same_terms/2,
-          op(1150,fx,kb_shared),
+          same_terms/2,          
           warn_if_static/2]).
 
 
 :- set_module(class(library)).
 
-:- op(1150,fx,kb_shared).
+:- if( \+ current_op(_,_,(kb_shared))).
+
+:- current_prolog_flag(access_level,Was),
+   set_prolog_flag(access_level,system),
+   op(1150,fx,(kb_shared)),
+   set_prolog_flag(access_level,Was).
+
+:- endif.
+
 
 :- module_transparent((
                     'decl_kb_shared'/1,decl_as/2,(kb_shared)/1,
@@ -67,6 +74,7 @@
 :- meta_predicate map_compound_args(3,*,*,*).
 :- meta_predicate map_compound_args(2,*,*).
 :- dynamic(baseKB:safe_wrap/3).
+:- module_transparent(baseKB:safe_wrap/3).
 
 :- multifile(t_l:disable_px/0).
 :- thread_local(t_l:disable_px/0).
@@ -95,8 +103,8 @@ dbreq(C):- ereq(C).
 :- asserta((baseKB:ignore_file_mpreds(M):- skipped_dirs(M))).
 
 skipped_dirs(M):-expand_file_search_path(swi(''),M),nonvar(M).
-skipped_dirs(M):-expand_file_search_path(pack(logicmoo_base/prolog/logicmoo/util),M),nonvar(M).
-skipped_dirs(M):-expand_file_search_path(pack(logicmoo_base/prolog/logicmoo/mpred),M),nonvar(M).
+skipped_dirs(M):-expand_file_search_path(pack(logicmoo_util),M),nonvar(M).
+% skipped_dirs(M):-expand_file_search_path(pack(pfc),M),nonvar(M).
 
 
 ignore_mpreds_in_file:-if_defined(t_l:disable_px,fail),!.
@@ -117,6 +125,7 @@ get_virtualizer_mode(ge,F,A,HowIn):- baseKB:safe_wrap(F,A,HowOut),!,must(HowIn=H
 
 % baseKB:safe_wrap(_,_,_):-!,fail.
 baseKB:safe_wrap(O,_,_):- bad_functor_check(O),!,fail.
+baseKB:safe_wrap(mtCycL,1,clause_b).
 baseKB:safe_wrap(F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
 baseKB:safe_wrap(F,A,_):- prolog_load_context(module,M),(never_virtualize(M:F/A);never_virtualize(F)),!,fail.
 baseKB:safe_wrap(F,A,dbreq):- virtualize_dbreq(F,A), virtualize_dbreq_source.
@@ -145,11 +154,11 @@ is_dynamic_module(tlbugger).
 is_dynamic_module(t_l).
 is_dynamic_module(prolog).
 is_dynamic_module(eggdrop).
-is_dynamic_module(M):- ereq(mtCycL(M)).
+is_dynamic_module(M):- clause_b(mtCycL(M)).
 
 is_static_module(system).
 is_static_module(file_scope).
-is_static_module(mpred_pfc).
+is_static_module(mpred_core).
 is_static_module(M):- is_dynamic_module(M),!,fail.
 is_static_module(M):- module_property(M,class(development)),!,fail.
 is_static_module(M):- module_property(M,class(library)),!.
@@ -161,7 +170,7 @@ virtualize_dbreq_source :- prolog_load_context(source,F),
 virtualize_dbreq_source :- prolog_load_context(module,M), \+ is_static_module(M).
 % virtualize_dbreq_source.
 
-virtualize_ereq_source :- prolog_load_context(module,M), member(M,['mpred_pfc','mpred_expansion']),!,fail.
+virtualize_ereq_source :- prolog_load_context(module,M), member(M,['mpred_core','mpred_expansion']),!,fail.
 virtualize_ereq_source.
 
 bad_functor_check(O):-var(O).
@@ -215,16 +224,16 @@ never_virtualize(thread_util:_/A):-integer(A). % prevents query
 %never_virtualize(F):- ereq(mpred_mark(pfcBuiltin,F,_)).
 
 never_virtualize(_:FA):-!, never_virtualize(FA).
-never_virtualize(F/A):- current_predicate(mpred_pfc:F/A),!.
+never_virtualize(F/A):- current_predicate(mpred_core:F/A),!.
 never_virtualize(F/_):- never_virtualize(F).
 %never_virtualize(P):- source_file(P,SF),dmsg(never_virtualize(P,SF)).
 %never_virtualize(F):- show_success(plz_never_virtualize(F)).
 
-plz_never_virtualize((/)).
-plz_never_virtualize((//)).
+never_virtualize((/)).
+never_virtualize((//)).
+never_virtualize(call).
+never_virtualize(apply).
 
-plz_never_virtualize(apply).
-plz_never_virtualize(call).
 plz_never_virtualize(call).
 plz_never_virtualize(on_x_debug).
 plz_never_virtualize(on_x_debug).
@@ -545,6 +554,7 @@ kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
   (asserta('already_decl_kb_shared'(M,F,A)),'do_decl_kb_shared'(M,F,A))),!.
 'decl_kb_shared'(MFA):- trace_or_throw(bad_kb_shared(MFA)).
 
+'do_decl_kb_shared'(M,prologSingleValued,0):- trace_or_throw('do_decl_kb_shared'(M,prologSingleValued,0)).
 'do_decl_kb_shared'(M,F,A):-
  must_det_l((
   functor(PI,F,A),
@@ -600,6 +610,14 @@ should_base_sd(I):-
    fail.
 should_base_sd(_).
 
+
+:- ignore((source_location(S,_),prolog_load_context(module,M),module_property(M,class(library)),
+ forall(source_file(M:H,S),
+ ignore((functor(H,F,A),
+  ignore(((\+ atom_concat('$',_,F),(export(F/A) , current_predicate(system:F/A)->true; system:import(M:F/A))))),
+  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A]))))))))).
+
+ 
 :-   dynamic(system:goal_expansion/4).
 :- multifile(system:goal_expansion/4).
 system:goal_expansion(In,Pos,Out,PosOut):- fail,
@@ -625,7 +643,7 @@ system:term_expansion((Head:-In),Pos,(Head:-Out),PosOut):-
   \+ ((prolog_load_context(module,M),module_property(M,class(library)))),
   sd_goal_expansion(In,In0,Out)-> 
     (In\==Out,In0\==Out) -> 
-      (dmsg(virtualize_body(In)-->(Head:-Out))) -> PosOut=Pos.
+      (nop(dmsg(virtualize_body(In)-->(Head:-Out)))) -> PosOut=Pos.
 
 
 /*

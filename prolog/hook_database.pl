@@ -1,4 +1,4 @@
-% File: /opt/PrologMUD/pack/logicmoo_base/prolog/logicmoo/util/logicmoo_util_database.pl
+% File: /opt/PrologMUD/pack/logicmoo_base/prolog/logicmoo/util/hook_database.pl
 :- module(hook_database,
           [ ain/1,
             ain0/1,
@@ -253,8 +253,8 @@ mpred_mop(M,Op,Term):-append_term(Op,Term,CALL),find_and_call(M,M,CALL).
 
 :-meta_predicate(find_and_call(+,+,?)).
 
-
-find_and_call(C,G):-loop_check(on_x_debug(C:G)).
+cp2(G):-loop_check_early(G,G).
+found_call(C,G):- on_x_debug(loop_check_early(C:call(G),cp2(C:G))).
 
 %= 	 	 
 
@@ -262,10 +262,10 @@ find_and_call(C,G):-loop_check(on_x_debug(C:G)).
 %
 % Find And Call.
 %
-find_and_call(_,_,C:G):-current_predicate(_,C:G),!,find_and_call(C,G).
-find_and_call(_,C,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
-find_and_call(C,_,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
-find_and_call(_,_,  G):-current_predicate(_,C:G),!,find_and_call(C,G).
+find_and_call(_,_,C:G):-current_predicate(_,C:G),!,found_call(C,G).
+find_and_call(_,C,  G):-current_predicate(_,C:G),!,found_call(C,G).
+find_and_call(C,_,  G):-current_predicate(_,C:G),!,found_call(C,G).
+find_and_call(_,_,  G):-current_predicate(_,C:G),!,found_call(C,G).
 find_and_call(C,M,  G):-dtrace,C:on_x_debug(M:G).
 
 
@@ -278,10 +278,10 @@ current_module_ordered(X):-current_module(X).
 %
 % Find And Call.
 %
-find_and_call(C:G):-current_predicate(_,C:G),!,find_and_call(C,G).
-find_and_call(_:G):-current_predicate(_,R:G),!,find_and_call(R:G).
-find_and_call(G):-current_predicate(_,G),!,loop_check(on_x_debug(G)).
-find_and_call(G):-current_predicate(_,R:G),!,find_and_call(R:G).
+find_and_call(C:G):-current_predicate(_,C:G),!,found_call(C,G).
+find_and_call(G):-current_predicate(_,G),!,on_x_debug(loop_check_early(G,cp2(G))).
+find_and_call(_:G):-current_predicate(_,R:G),!,found_call(R,G).
+find_and_call(G):-current_predicate(_,R:G),!,found_call(R,G).
 
 module_of(O,G,M):-predicate_property(O:G,imported_from(M)),!.
 module_of(M,G,M):-predicate_property(M:G,defined), \+ predicate_property(M:G,imported_from(_)).
@@ -833,3 +833,10 @@ erase_safe_now(M,system:clause(A,B),REF):-!,
 */
 
 
+:- ignore((source_location(S,_),prolog_load_context(module,M),module_property(M,class(library)),
+ forall(source_file(M:H,S),
+ ignore((functor(H,F,A),
+  ignore(((\+ atom_concat('$',_,F),(export(F/A) , current_predicate(system:F/A)->true; system:import(M:F/A))))),
+  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A]))))))))).
+
+ 

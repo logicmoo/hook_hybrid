@@ -119,9 +119,20 @@
 :- reexport(lockable_vars).
 :- reexport(hook_database).
 
+:- create_prolog_flag(lm_expanders,true,[keep(true)]).
+
+:- meta_predicate(with_no_mpred_expansions(:)).
+%% with_no_mpred_expansions( :Goal) is det.
+%
+% Using No Managed Predicate Expansions.
+%
+with_no_mpred_expansions(Goal):-
+  locally(set_prolog_flag(lm_expanders,Goal)).
+:- export(with_no_mpred_expansions/1).
+:- system:import(with_no_mpred_expansions/1).
 
 
-%% with_source_module( +NewModule, :GoalGoal) is semidet.
+%% with_source_module( +NewModule, :Goal) is semidet.
 %
 % Call Using Source Module.
 %
@@ -134,7 +145,7 @@ with_source_module(NewModule,Goal):-
           Goal, 
       '$set_source_module'(OldModule)).
 
-%% call_from_module( +NewModule, :GoalGoal) is semidet.
+%% call_from_module( +NewModule, :Goal) is semidet.
 %
 % Call Using Module.
 %
@@ -974,3 +985,12 @@ rebuild_pred_into(OMC,NMC,AssertZ,OtherTraits):-
 
 % :- ensure_loaded(hook_database).
 
+
+
+:- ignore((source_location(S,_),prolog_load_context(module,M),module_property(M,class(library)),
+ forall(source_file(M:H,S),
+ ignore((functor(H,F,A),
+  ignore(((\+ atom_concat('$',_,F),(export(F/A) , current_predicate(system:F/A)->true; system:import(M:F/A))))),
+  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A]))))))))).
+
+ 
