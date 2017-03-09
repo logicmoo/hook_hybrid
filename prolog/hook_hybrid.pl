@@ -119,7 +119,7 @@
 :- reexport(lockable_vars).
 :- reexport(hook_database).
 
-:- create_prolog_flag(lm_expanders,true,[keep(true)]).
+:- create_prolog_flag(subclause_expansion,true,[keep(true)]).
 
 :- meta_predicate(with_no_mpred_expansions(:)).
 %% with_no_mpred_expansions( :Goal) is det.
@@ -127,7 +127,7 @@
 % Using No Managed Predicate Expansions.
 %
 with_no_mpred_expansions(Goal):-
-  locally(set_prolog_flag(lm_expanders,Goal)).
+  locally(set_prolog_flag(subclause_expansion,Goal)).
 :- export(with_no_mpred_expansions/1).
 :- system:import(with_no_mpred_expansions/1).
 

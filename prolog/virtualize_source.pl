@@ -420,7 +420,7 @@ xform_arity(C,F,A):- compound(C), functor(C,F,A).
 
 xform(_,_):-!,fail.
 xform(Var,Out):- \+compound(Var),!,Out=Var.
-xform(Nonvar,Out):- \+ current_prolog_flag(lm_expanders,true),!,Nonvar=Out.
+xform(Nonvar,Out):- \+ current_prolog_flag(subclause_expansion,true),!,Nonvar=Out.
 %xform(isa(C,P),mpred_prop(F,A,P)):-nonvar(P),!,is_reltype(P),xform_arity(C,F,A).
 %xform(isa(C,P),(ttRelationType(P),mpred_prop(F,A,P))):-nonvar(C),xform_arity(C,F,A),is_reltype(P),!.
 xform(mpred_isa(C,P),mpred_prop(F,A,P)):- xform_arity(C,F,A),!.
@@ -616,58 +616,18 @@ same_terms((A:-AA),(B:-BB)):-!,same_terms(A,B),same_terms(AA,BB).
 same_terms(M:A,B):-atom(M),!,same_terms(A,B).
 same_terms(A,M:B):-atom(M),!,same_terms(A,B).
 
-% nb_current('$goal_term',Was),Was==In,
 
-should_base_sd(I):-  nb_current('$goal_term',Was),same_terms(I, Was),!,fail.
-should_base_sd(I):-  
-   (nb_current_or_nil('$source_term',TermWas),\+ same_terms(TermWas, I)),
-   (nb_current_or_nil('$term',STermWas),\+ same_terms(STermWas, I)),!,
-   fail.
-should_base_sd(_).
-
-
-:- ignore((source_location(S,_),prolog_load_context(module,M),module_property(M,class(library)),
- forall(source_file(M:H,S),
- ignore((functor(H,F,A),
-  ignore(((\+ atom_concat('$',_,F),(export(F/A) , current_predicate(system:F/A)->true; system:import(M:F/A))))),
-  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A]))))))))).
-
- 
-:-   dynamic(system:goal_expansion/4).
-:- multifile(system:goal_expansion/4).
-system:goal_expansion(In,Pos,Out,PosOut):- fail,
-  \+ current_prolog_flag(xref,true),
-  \+ current_prolog_flag(lm_expanders,false),  
-  % \+ source_location(_,_),  
+:-   dynamic(system:file_body_expansion/2).
+:- multifile(system:file_body_expansion/2).
+system:file_body_expansion(Head,In,Out):- 
   current_prolog_flag(virtual_stubs,true),
-  var(Pos),
-  compound(In),strip_module(In,_,In0),compound(In0), 
+  strip_module(In,_,In0),compound(In0), 
   sd_goal_expansion(In,In0,Out)-> 
     (In\==Out,In0\==Out) -> 
-      (dmsg(virtualize_goal(In)-->Out)) -> PosOut=Pos.
+      (nop(dmsg(virtualize_body(In)-->(Head:-Out)))).
+
+:- set_prolog_flag(virtual_stubs,default).
+
+:- use_module(library(subclause_expansion)).
 
 
-:-   dynamic(system:term_expansion/4).
-:- multifile(system:term_expansion/4).
-system:term_expansion((Head:-In),Pos,(Head:-Out),PosOut):- 
-  \+ current_prolog_flag(xref,true),
-  \+ current_prolog_flag(lm_expanders,false),  
-  current_prolog_flag(virtual_stubs,true),
-  nonvar(Pos),nb_current('$term',Head:-Goal),Goal==In,
-  compound(In),strip_module(In,_,In0),compound(In0), 
-  \+ ((prolog_load_context(module,M),module_property(M,class(library)))),
-  sd_goal_expansion(In,In0,Out)-> 
-    (In\==Out,In0\==Out) -> 
-      (nop(dmsg(virtualize_body(In)-->(Head:-Out)))) -> PosOut=Pos.
-
-
-/*
-:- dynamic system:sub_call_expansion/2.
-:- multifile system:sub_call_expansion/2.
-:- dynamic system:sub_body_expansion/2.
-:- multifile system:sub_body_expansion/2.
-%system:term_expansion(X,Y):- compound(X),xform(X,Y).
-%system:sub_body_expansion(In,Out):-virtualize_source(be,In,Out).
-%system:sub_body_expansion(In,Out):- Out\== true, Out\=(cwc,_),could_safe_virtualize,virtualize_source(be,In,Out).
-%system:sub_call_expansion(In,Out):-virtualize_source(ce,In,Out).
-*/
