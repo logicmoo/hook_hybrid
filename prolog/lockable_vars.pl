@@ -39,7 +39,7 @@ vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):-
 
 vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
   \+ (var(VarValue);verbatum_var(VarValue)),!,
-  dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue)),
+  nop(dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue))),
   call(Notify,VarValue),!.
 
 vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 

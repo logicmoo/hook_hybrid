@@ -82,6 +82,7 @@
         clause_asserted(:, ?, -),
         clause_safe(?, ?),
         eraseall(+, +),
+        find_and_call(*),
         find_and_call(+, +, ?),
         module_of(+,+,?),
         callable_module(:,-),
@@ -202,7 +203,7 @@ my_module_sensitive_code(_E):- source_context_module(CM),writeln(source_context_
 %
 clause_safe(H,B):-predicate_property(H,number_of_clauses(C)),C>0,system:clause(H,B).
 
-:- meta_predicate if_flag_true(+,:).
+:- meta_predicate(if_flag_true(:,:)).
 if_flag_true(TF,Goal):-
   (current_prolog_flag(TF,F) -> 
     (F\=false -> find_and_call(Goal); true);
@@ -251,17 +252,18 @@ mpred_mop(M,Op,Term):-append_term(Op,Term,CALL),find_and_call(M,M,CALL).
 mpred_mop(M,call,CALL):-!,find_and_call(M,M,CALL).
 mpred_mop(M,Op,Term):-append_term(Op,Term,CALL),find_and_call(M,M,CALL).
 
-:-meta_predicate(find_and_call(+,+,?)).
 
+:-meta_predicate(cp2(0)).
 cp2(G):-loop_check_early(G,G).
-found_call(C,G):- on_x_debug(loop_check_early(C:call(G),cp2(C:G))).
 
-%= 	 	 
+:-meta_predicate(found_call(+,*)).
+found_call(C,G):- on_x_debug(loop_check_early(C:call(G),cp2(C:G))).
 
 %% find_and_call( +OUT1, +C, ?G) is semidet.
 %
 % Find And Call.
 %
+:-meta_predicate(find_and_call(+,+,?)).
 find_and_call(_,_,C:G):-current_predicate(_,C:G),!,found_call(C,G).
 find_and_call(_,C,  G):-current_predicate(_,C:G),!,found_call(C,G).
 find_and_call(C,_,  G):-current_predicate(_,C:G),!,found_call(C,G).
@@ -696,6 +698,13 @@ retract_i(HB):- expand_to_hb(HB,H,B), (clause_i(H,B,Ref)*->erase(Ref)).
 retractall_i(H):-expand_to_hb(H,HH,_),forall(clause_i(HH,_,Ref),erase(Ref)).
 
 
+:- dynamic(ereq/1).
+:- module_transparent(ereq/1).
+ereq(C):- find_and_call(C).
+
+:- dynamic(dbreq/1).
+:- module_transparent(dbreq/1).
+dbreq(C):- ereq(C).
 
 
 :-meta_predicate(clause_true(?)).

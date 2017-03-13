@@ -76,9 +76,10 @@
 
 :- module_transparent(declared_to_wrap/3).
 
-:- multifile(t_l:disable_px/0).
+
 :- thread_local(t_l:disable_px/0).
 
+:- reexport(library(hook_database)).
 
 nb_current_or_nil(N,V):- notrace((nb_current(N,V)->true;V=[])).
 
@@ -88,14 +89,6 @@ nb_current_or_nil(N,V):- notrace((nb_current(N,V)->true;V=[])).
 :- dynamic(baseKB:col_as_isa/1).
 :- dynamic(baseKB:col_as_unary/1).
 :- dynamic(baseKB:col_as_static/1).
-
-:- dynamic(ereq/1).
-:- module_transparent(ereq/1).
-ereq(C):- find_and_call(C).
-
-:- dynamic(dbreq/1).
-:- module_transparent(dbreq/1).
-dbreq(C):- ereq(C).
 
 :- multifile(baseKB:ignore_file_mpreds/1).
 :- dynamic(baseKB:ignore_file_mpreds/1).
@@ -570,18 +563,35 @@ kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
 'decl_kb_shared'(MFA):- trace_or_throw(bad_kb_shared(MFA)).
 
 'do_decl_kb_shared'(M,prologSingleValued,0):- trace_or_throw('do_decl_kb_shared'(M,prologSingleValued,0)).
-'do_decl_kb_shared'(M,F,A):-
- must_det_l((
-  functor(PI,F,A),
+
+'do_decl_kb_shared'(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
+
+do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
+do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(R)),R\==M,!,
+   do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
+do_decl_kb_shared_1(M,F,A,PI):- current_predicate(F,R:PI),\+ predicate_property(R:PI,imported_from(_)),R\==M,!,
+   do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
+do_decl_kb_shared_1(M,F,A,PI):- do_decl_kb_shared_2(M,F,A,PI),!.
+  
+do_import(TM,M,F,A):- on_xf_cont((TM:import(M:F/A),TM:export(M:F/A))),
+   on_xf_cont((TM:discontiguous(M:F/A))),
+   on_xf_cont((TM:multifile(M:F/A))),
+   on_xf_cont((TM:public(M:F/A))),
+   on_xf_cont((TM:module_transparent(M:F/A))). % in case this has clauses th
+
+do_decl_kb_shared_2(M,F,A,PI):- 
+   nop(dmsg(('do_decl_kb_shared'(M,F,A)))),
+ must_det_l((  
   (is_static_predicate(M:PI) -> true ; (predicate_property(M:PI,dynamic) -> true ; on_xf_cont(M:dynamic(M:PI)))),
-   decl_wrapped(M,F,A,ereq),
-   baseKB:multifile(M:F/A),
-   baseKB:export(M:F/A),
-   system:import(M:F/A),
-   system:export(M:F/A),
-   baseKB:module_transparent(M:F/A), % in case this has clauses th
-   baseKB:discontiguous(M:F/A),
-   baseKB:public(M:F/A))).
+   do_import(M,M,F,A),
+   do_import(baseKB,M,F,A),
+   do_import(pfc,M,F,A),
+   do_import(system,M,F,A),   
+   do_import(user,M,F,A),   
+   '$current_source_module'(SM),do_import(SM,M,F,A),   
+   '$current_typein_module'(TM),do_import(TM,M,F,A),
+   decl_wrapped(M,F,A,ereq))).
+
    % on_f_throw( (M:F/A)\== (lmcache:loaded_external_kbs/1)),
    % (find_and_call(mtCycL(M))->ain(baseKB:prologHybrid(F));true),
 
