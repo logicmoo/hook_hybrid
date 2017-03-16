@@ -9,7 +9,8 @@
             current_module_from/2,
             attributes_equal/3,
             
-            
+          ereq/1,
+          dbreq/1,
             
             is_visible_module/1,
             hb_to_clause/3,

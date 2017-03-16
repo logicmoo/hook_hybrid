@@ -24,8 +24,6 @@
           virtualize_ereq/2,
           safe_virtualize/3,
           sd_goal_expansion/3,
-          ereq/1,
-          dbreq/1,
           swc/0,
           vwc/0,
           check_mfa/3,
