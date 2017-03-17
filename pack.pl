@@ -1,5 +1,5 @@
 name(hook_hybrid).
-version('1.1.114').
+version('1.1.115').
 title('Hook assert retract call of *specific* predicates').
 keywords([term_expansion,database,utility]).
 
