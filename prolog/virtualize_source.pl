@@ -81,12 +81,14 @@
 
 nb_current_or_nil(N,V):- notrace((nb_current(N,V)->true;V=[])).
 
+/*
 :- multifile(baseKB:col_as_isa/1).
 :- multifile(baseKB:col_as_unary/1).
 :- multifile(baseKB:col_as_static/1).
 :- dynamic(baseKB:col_as_isa/1).
 :- dynamic(baseKB:col_as_unary/1).
 :- dynamic(baseKB:col_as_static/1).
+*/
 
 :- multifile(baseKB:ignore_file_mpreds/1).
 :- dynamic(baseKB:ignore_file_mpreds/1).
@@ -272,8 +274,8 @@ virtualize_ereq(O,_):- bad_functor_check(O),!,fail.
 
 %virtualize_ereq(lmcache:loaded_external_kbs,1).
 
-virtualize_ereq(COL,A):- clause_b(col_as_isa(COL)),sanity(A==1).
-virtualize_ereq(COL,A):- clause_b(col_as_unary(COL)),sanity(A==1).
+%virtualize_ereq(COL,A):- clause_b(col_as_isa(COL)),sanity(A==1).
+%virtualize_ereq(COL,A):- clause_b(col_as_unary(COL)),sanity(A==1).
 
 virtualize_ereq(isa,2).
 virtualize_ereq(genls,2).

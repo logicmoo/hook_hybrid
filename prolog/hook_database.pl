@@ -545,7 +545,7 @@ ainz_clause(H,B):- clause_asserted(H,B)->true;call_provider(system:assertz((H:-B
 %
 % Split a Head+Body from Clause.
 %
-expand_to_hb( Var, H, B):- var(Var),!,when(nonvar(Var),expand_to_hb( Var, H, B)).
+expand_to_hb( Var, H, B):- var(Var),!,dmsg(warn(expand_to_hb( Var, H, B))), when(nonvar(Var),expand_to_hb( Var, H, B)).
 expand_to_hb( M:((H :- B)),M:H,B):-!.
 expand_to_hb( ((H :- B)),H,B):-!.
 expand_to_hb( H,  H,  true).
