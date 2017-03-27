@@ -177,11 +177,11 @@ bad_functor_check(:):- !,dumpST,dtrace.
 % Preds that we''d like to know a little more than "instanciation exception"s
 virtualize_safety(O,_):- bad_functor_check(O),!,fail.
 
-/*
 virtualize_safety((=..),2).
+/*
 virtualize_safety(functor,3).
-virtualize_safety(is,2).
 virtualize_safety(arg,3).
+virtualize_safety(is,2).
 */
 
 % Preds that we assume indicate we''d already passed over it
