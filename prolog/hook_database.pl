@@ -19,7 +19,7 @@
             remove_term_attr_type/2,
             ainz_clause/1,ainz_clause/2,
             simple_var/1,
-            append_term/3,
+            
             find_module/2,
             module_of/3,
             callable_module/2,
@@ -41,7 +41,6 @@
             assert_i/1,asserta_i/1,assertz_i/1,
             retract_i/1,retractall_i/1,
             
-            apply_term/3,
             clause_safe/2,
             
             erase_safe/2,
@@ -98,7 +97,7 @@
          module_of/3,
          callable_module/2,
             
-        append_term/3,
+        
         modulize_head/2,
         modulize_head_fb/4,
         my_module_sensitive_code/1,
@@ -137,7 +136,7 @@
             remove_term_attr_type/2,
             ainz_clause/1,ainz_clause/2,
             simple_var/1,
-            append_term/3,
+            
             expand_to_hb/3,
             assert_if_new/1,
             asserta_if_new/1,
@@ -790,23 +789,9 @@ bad_functor(L) :- arg(_,v('|','.',[],':','/'),L).
 %
 warn_bad_functor(L):-ignore((notrace(bad_functor(L)),!,dtrace,call(ddmsg(bad_functor(L))))).
 
-:- export(append_term/3).
 
 %= 	 	 
 */
-
-%% append_term( ?T, ?I, ?HEAD) is semidet.
-%
-% Append Term.
-%
-append_term(T,I,HEAD):-atom(T),!,HEAD=..[T,I],!.
-append_term(Call,E,CallE):-var(Call),!, must(compound(CallE)),CallE=..ListE,append(List,[E],ListE),Call=..List.
-append_term(Call,E,CallE):-must(compound(Call)), Call=..List, append(List,[E],ListE), CallE=..ListE.
-
-
-apply_term(T,LST,HEAD):- atom(T),!,HEAD=..[T|LST],!.
-apply_term(T,LST,HEAD):- HEAD=..[t,T|LST],!.
-
 
 :-export(erase_safe/2).
 
