@@ -243,6 +243,7 @@ never_virtualize_atom(Atom):- atom(Atom),!,atom_concat('mpred_',_,Atom). % mpred
 never_virtualize2((/)).
 never_virtualize2((//)).
 never_virtualize2(call).
+never_virtualize2(fix_mp).
 never_virtualize2(apply).
 
 plz_never_virtualize(on_x_debug).
