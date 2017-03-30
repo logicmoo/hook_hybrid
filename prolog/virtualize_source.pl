@@ -37,8 +37,8 @@
           same_terms/2,          
           warn_if_static/2]).
 
-
 :- set_module(class(library)).
+:- reexport(library(must_trace)).
 
 :- if( \+ current_op(_,_,(kb_shared))).
 
