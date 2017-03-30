@@ -419,7 +419,7 @@ xform(Var,Out):- \+compound(Var),!,Out=Var.
 xform(Nonvar,Out):- \+ current_prolog_flag(subclause_expansion,true),!,Nonvar=Out.
 %xform(isa(C,P),mpred_prop(F,A,P)):-nonvar(P),!,is_reltype(P),xform_arity(C,F,A).
 %xform(isa(C,P),(ttRelationType(P),mpred_prop(F,A,P))):-nonvar(C),xform_arity(C,F,A),is_reltype(P),!.
-xform(mpred_isa(C,P),mpred_prop(F,A,P)):- xform_arity(C,F,A),!.
+% xform(mpred_isa(C,P),mpred_prop(F,A,P)):- xform_arity(C,F,A),!.
 xform(hybrid_support(F,A),mpred_prop(F,A,prologHybrid)):-!.
 % xform(arity(F,A),mpred_prop(F,A,arity)):-!.
 xform(mpred_prop(F,A,P),mpred_prop(F,A,P)):-!.
