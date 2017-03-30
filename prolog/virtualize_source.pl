@@ -120,9 +120,9 @@ get_virtualizer_mode(ge,F,A,HowIn):- declared_to_wrap(F,A,HowOut),!,must(HowIn=H
 :- dynamic(baseKB:safe_wrap/3).
 
 declared_to_wrap(O,_,_):- bad_functor_check(O),!,fail.
+declared_to_wrap(F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
 declared_to_wrap(F,A,HowIn):- clause_b(safe_wrap(F,A,HowIn)),!.
 declared_to_wrap(mtCycL,1,clause_b).
-declared_to_wrap(F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
 declared_to_wrap(F,A,dbreq):- virtualize_dbreq(F,A), virtualize_dbreq_source.
 declared_to_wrap(F,A,ereq):- clause_b(mpred_prop(F,A,prologHybrid)),!.
 declared_to_wrap(F,A,ereq):- virtualize_ereq(F,A), virtualize_ereq_source.
@@ -178,10 +178,11 @@ bad_functor_check(:):- !,dumpST,dtrace.
 virtualize_safety(O,_):- bad_functor_check(O),!,fail.
 
 virtualize_safety((=..),2).
-/*
 virtualize_safety(functor,3).
 virtualize_safety(arg,3).
 virtualize_safety(is,2).
+/*
+
 */
 
 % Preds that we assume indicate we''d already passed over it
