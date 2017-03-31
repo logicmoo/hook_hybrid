@@ -137,6 +137,7 @@ with_no_mpred_expansions(Goal):-
 % Call Using Source Module.
 %
 :- meta_predicate with_source_module(+,0).
+:- trace.
 with_source_module(OldSModule, Goal ):- '$current_source_module'(OldSModule),!,OldSModule:Goal.
 with_source_module(NewModule,Goal):-  
    '$current_source_module'(OldModule),
@@ -163,7 +164,7 @@ call_from_module(NewModule,Goal):-
       NewModule:Call,
       ('$set_source_module'(OldSModule),'$set_typein_module'(OldModule))).
 
-
+:- nortrace.
 
 dump_break:- prolog_stack:backtrace(8000),dtrace. % system:dbreak.
 

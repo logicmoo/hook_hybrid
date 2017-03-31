@@ -207,7 +207,8 @@ never_virtualize(M:F/A):- functor(P,F,A),source_file(M:P,SF),
 never_virtualize(_:F/_):- !, never_virtualize_atom(F),!.
 never_virtualize(_:FA):- !,never_virtualize(FA),!.
 
-never_virtualize_atom(Atom):- \+ atom(Atom),!.
+never_virtualize_atom(Atom):- \+ atom(Atom),!,fail.
+never_virtualize_atom(F):- functor(C,F,1),predicate_property(system:C,static), \+ predicate_property(system:C,transparent).
 never_virtualize_atom(ereq).
 never_virtualize_atom(dbreq).
 never_virtualize_atom(call_u).
