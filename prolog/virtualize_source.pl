@@ -628,7 +628,7 @@ do_decl_kb_shared_2(M,F,A,PI):-
 
 decl_wrapped(M,F,A,How):-
  once((M==baseKB->true;ain(baseKB:predicateConventionMt(F,M)))),
- ain(baseKB:arity(F,A)),
+ ain(rdf_rewrite:arity(F,A)),
  ain(baseKB:safe_wrap(F,A,How)).
 
 % Skip Virtualizing
