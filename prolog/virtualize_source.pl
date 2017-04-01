@@ -506,7 +506,7 @@ map_compound_args(Pred,Args,In,Out):- must(( compound(Args), compound(In), Args=
 could_safe_virtualize:- prolog_load_context(module,M), 
 
      \+ clause_b(mtCycL(M)),
-     \+ ((current_prolog_flag(dialect_pfc,true); 
+     \+ ((current_prolog_flag(dialect_pfc,fwc); 
        (source_location(F,_W),( atom_concat(_,'.pfc.pl',F);atom_concat(_,'.plmoo',F);atom_concat(_,'.pfc',F))))).
 
 %virtualize_source(X,In,Out):- (ground(In);true;current_prolog_flag(unsafe_speedups,true)),!,virtualize_code(X,In,Out).
@@ -585,6 +585,8 @@ kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
 
 :- multifile(baseKB:'already_decl_kb_shared'/3).
 :- dynamic(baseKB:'already_decl_kb_shared'/3).
+
+'decl_kb_shared'(M:'==>'/A):- !, dmsg(skip('decl_kb_shared'(M:'==>'/A))).
 
 'decl_kb_shared'(M:F/A):- check_mfa(M,F,A),!,
   (baseKB:'already_decl_kb_shared'(M,F,A)->true;
