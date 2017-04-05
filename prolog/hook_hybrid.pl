@@ -127,7 +127,8 @@
 % Using No Managed Predicate Expansions.
 %
 with_no_mpred_expansions(Goal):-
-  locally(set_prolog_flag(subclause_expansion,Goal)).
+  locally(set_prolog_flag(subclause_expansion,false),
+    locally(set_prolog_flag(mpred_te,false),Goal)).
 :- export(with_no_mpred_expansions/1).
 :- system:import(with_no_mpred_expansions/1).
 

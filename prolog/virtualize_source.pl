@@ -17,6 +17,7 @@
           [
           'decl_kb_shared'/1,
           decl_as/2,
+          virtualize_source_file/0,
           virtualize_source/3,
           virtualize_code/3,
           virtualize_code_fa/5,
@@ -619,6 +620,7 @@ do_decl_kb_shared_2(M,F,A,PI):-
    do_import(pfc,M,F,A),
    do_import(system,M,F,A),   
    do_import(user,M,F,A),   
+   do_import(mpred_type_isa,M,F,A),   
    '$current_source_module'(SM),do_import(SM,M,F,A),   
    '$current_typein_module'(TM),do_import(TM,M,F,A),
    decl_wrapped(M,F,A,ereq))).
@@ -639,10 +641,7 @@ vwc :- throw('Code was missed by virtualizer!').
 
 % always goal expand (and remove it so it wont throw)
 sd_goal_expansion(_,(VWC,In),Out):- vwc==VWC,!,callable(In),virtualize_source(ge,In,Out).
-sd_goal_expansion(In,_,Out):- callable(In),    
-   \+ current_prolog_flag(virtual_stubs,false),
-   % \+ (prolog_load_context(module,M),module_property(M,class(library))),
-   virtualize_source(ge,In,Out).
+sd_goal_expansion(In,_,Out):- callable(In),virtualize_source(ge,In,Out).
 
 %= 	 	 
 
@@ -657,30 +656,43 @@ same_terms((A:-AA),(B:-BB)):-!,same_terms(A,B),same_terms(AA,BB).
 same_terms(M:A,B):-atom(M),!,same_terms(A,B).
 same_terms(A,M:B):-atom(M),!,same_terms(A,B).
 
+
+:- dynamic(lmconf:virtualize_source_file/1).
+virtualize_source_file:- prolog_load_context(source,F), 
+  (lmconf:virtualize_source_file(F)->true;asserta(lmconf:virtualize_source_file(F))).
+
 :- if(false).
-:-   dynamic(system:file_body_expansion/2).
+
 :- multifile(system:file_body_expansion/2).
-system:file_body_expansion(Head,In,Out):- 
-  \+ current_prolog_flag(virtual_stubs,false),
-  strip_module(In,_,In0),compound(In0), 
-  sd_goal_expansion(In,In0,Out)-> 
-    (In\==Out,In0\==Out) -> 
-      (nop(dmsg(virtualize_body(In)-->(Head:-Out)))).
+:-   dynamic(system:file_body_expansion/2).
 :- use_module(library(subclause_expansion)).
+system:file_body_expansion(Head,In,Out):- 
+  
+  prolog_load_context(source,S),
+  lmconf:virtualize_source_file(S),
+  strip_module(In,_,In0),compound(In0), 
+  (sd_goal_expansion(In,In0,Out)-> 
+    ((In\==Out,In0\==Out) -> 
+      (nop(dmsg(((virtualize_body(Head :- In)-->Out))))))).
+
 
 :- else.
 
-user:goal_expansion(In,P,Out,P):- callable(In), nonvar(P),
-  \+ current_prolog_flag(virtual_stubs,false),
-  
+:- multifile(system:goal_expansion/4).
+:- dynamic(system:goal_expansion/4).
+:- module_transparent(system:goal_expansion/4).
+system:goal_expansion(In,P,Out,PO):- callable(In), nonvar(P),
+  prolog_load_context(source,S),
+  lmconf:virtualize_source_file(S),
+  nb_current('$term', _ :- FileTerm),
+  In == FileTerm,
   strip_module(In,_,In0),compound(In0), 
-  sd_goal_expansion(In,In0,Out)-> 
+  (sd_goal_expansion(In,In0,Out)-> 
     (In\==Out,In0\==Out) -> 
-      (nop(dmsg(virtualize_body(In)-->Out))).
+      (nop(dmsg(virtualize_body(In)-->Out)))),
+  PO=P.
 
 :- endif.
-
-:- set_prolog_flag(virtual_stubs,default).
 
 
 
