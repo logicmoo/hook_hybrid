@@ -26,8 +26,9 @@ lock_vars(_Notify,Var):- (skip_varlocks; Var==[]),!.
 lock_vars(Notify,[Var|Vars]):- !, PVs=..[vv|[Var|Vars]], lock_these_vars_now(Notify,1,[Var|Vars],PVs),!.
 lock_vars(Notify,Term):- term_variables(Term,Vs),lock_vars(Notify,Vs).
 
-lock_these_vars_now(Notify,N0,[Var|Vars],PVs):-
-   put_attr(Var,vl,when_rest(Notify,N0,PVs)), N is N0+1,
+lock_these_vars_now(Notify,N0,[Var|Vars],PVs):-!,
+  ignore((var(Var),put_attr(Var,vl,when_rest(Notify,N0,PVs)))), 
+   N is N0+1,
    lock_these_vars_now(Notify,N,Vars,PVs).
 lock_these_vars_now(_,_,[],_).
 
@@ -36,17 +37,17 @@ vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):-
     arg(N,VVs,Was),N\==N,Was==VarValue,!,
     dmsg(collide_locked_var(Notify,VarValue)),
     call(Notify,VarValue).
-
 vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
   \+ (var(VarValue);verbatum_var(VarValue)),!,
-  nop(dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue))),
+  dmsg(error_locked_var(when_rest(Notify,N,VVs),VarValue)),
   call(Notify,VarValue),!.
 
-vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- 
+vl:attr_unify_hook(when_rest(Notify,N,VVs),VarValue):- var(VarValue),!,
       (get_attr(VarValue,vl,when_rest(Notify,N,VVs))
       -> true ; 
          put_attr(VarValue,vl,when_rest(Notify,N,VVs))).
 
+vl:attr_unify_hook(_,VarValue):- verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
 
 %% unlock_vars( :TermOrVar) is semidet.
 %
