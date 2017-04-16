@@ -75,7 +75,7 @@
         ( (dynamic_safe(+)) ),
          with_pfa_single(3,?,?,?),
         ( dynamic_safe(+, +, +) ),
-        get_module_of(0, -),
+        get_module_of(*, -),
         get_module_of_4(0, +, +, -),
         must_pi(0),
         rebuild_pred_into(0, 1, ?),
@@ -741,7 +741,7 @@ get_module_of_4(_P,F,A,_M):-dtrace, isCycPredArity(F,A),!,fail.
 get_module_of_4(P,F,A,PredMt):- dtrace, debugCall(get_module_of_4(P,F,A,PredMt)).
 */
 
-:- meta_predicate get_module_of(0,-).
+:- meta_predicate get_module_of(*,-).
 
 %= 	 	 
 
@@ -749,12 +749,19 @@ get_module_of_4(P,F,A,PredMt):- dtrace, debugCall(get_module_of_4(P,F,A,PredMt))
 %
 % Get Module Of.
 %
-get_module_of(V,PredMt):-var(V),!,current_module(PredMt).
-get_module_of(F/A,PredMt):-!,functor_catch(P,F,A),!,get_module_of(P,PredMt).
-get_module_of(P,PredMt):-predicate_property(P,imported_from(PredMt)),!.
-get_module_of(P,PredMt):-predicate_property(_:P,imported_from(PredMt)),!.
-get_module_of(MM:_,PredMt):-!,MM=PredMt.
-get_module_of(P,PredMt):-functor_catch(P,F,A),get_module_of_4(P,F,A,PredMt).
+
+% get_module_of(V,PredMt):-var(V),!,current_module(PredMt).
+%get_module_of(V,PredMt):-var(V),!,fail,prolog_load_context(module,PredMt).
+%get_module_of(PredMt:V,PredMt):-var(V),!.
+%get_module_of(_:P,PredMt):-!,get_module_of(P,PredMt).
+%get_module_of(F/A,PredMt):-!,functor_catch(P,F,A),!,get_module_of(P,PredMt).
+% get_module_of(_:F/A,PredMt):- functor_catch(P,F,A),!,get_module_of(P,PredMt).
+
+get_module_of(P,M):- with_pred_head(get_module_of0(M),P).
+get_module_of0(PredMt,P):- notrace(predicate_property(P,imported_from(PredMt))),!.
+get_module_of0(PredMt,P):- notrace(predicate_property(_:P,imported_from(PredMt))),!.
+get_module_of0(PredMt,MM:_):-!,MM=PredMt.
+get_module_of0(PredMt,P):-functor_catch(P,F,A),get_module_of_4(P,F,A,PredMt).
 
 
 
@@ -779,36 +786,40 @@ is_static_predicate_3(PredMt,F,A):-
 %= 	 	 
 
 
+:- module_transparent(with_pred_head/2).
 
 %% is_static_predicate( :TermA) is semidet.
 %
 % Static Predicate.
 %
-is_static_predicate(Var):- var(Var),!,trace_or_throw(var_is_static_predicate(Var)).
-is_static_predicate(M:Var):- var(Var),!,trace_or_throw(var_is_static_predicate(M:Var)).
-is_static_predicate(M:M:H):-!,nonvar(H),is_static_predicate(M:H).
-is_static_predicate((H:-_)):-!,nonvar(H),is_static_predicate(H).
-is_static_predicate(~(H)):-!,nonvar(H),is_static_predicate(H).
-is_static_predicate(M:'~'(H)):-!,nonvar(H),is_static_predicate(M:H).
-is_static_predicate(M:(H:-_)):-!,nonvar(H),!,is_static_predicate(M:H).
-is_static_predicate(M:F/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
-is_static_predicate(M:F//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
-is_static_predicate(M:F):-atom(F),predicate_property(M:F,static),!,predicate_property(F,number_of_clauses(_)),\+ predicate_property(F,dynamic).
-is_static_predicate((M:F)//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
-is_static_predicate((M:F)/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),is_static_predicate(M:H).
-is_static_predicate(F/A):-!,atom(F),current_predicate(F/A),!,functor(H,F,A),is_static_predicate(H).
-is_static_predicate(F//A2):-A is A2+2, !,atom(F),current_predicate(F/A),!,functor(H,F,A),is_static_predicate(H).
+with_pred_head(Pred,Var):- var(Var),!,trace_or_throw(var_with_pred_head(Pred,Var)).
+with_pred_head(Pred,(H:-_)):-!,with_pred_head(Pred,H).
+with_pred_head(Pred,M:Var):- var(Var),!,trace_or_throw(var_with_pred_head(Pred,M:Var)).
+with_pred_head(Pred,M:(H:-_)):-!,with_pred_head(Pred,M:H).
+with_pred_head(Pred,_:M:H):-!,with_pred_head(Pred,M:H).
+with_pred_head(Pred,~(H)):-nonvar(H),!,with_pred_head(Pred,H).
+with_pred_head(Pred,M:'~'(H)):-nonvar(H),!,with_pred_head(Pred,M:H).
+with_pred_head(Pred,M:F/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),call(Pred,M:H).
+with_pred_head(Pred,M:F//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),call(Pred,M:H).
+with_pred_head(Pred,(M:F)//A2):-A is A2+2, !,atom(F),current_predicate(M:F/A),!,functor(H,F,A),call(Pred,M:H).
+with_pred_head(Pred,(M:F)/A):-!,atom(F),current_predicate(M:F/A),!,functor(H,F,A),call(Pred,M:H).
+with_pred_head(Pred,F/A):-!,atom(F),current_predicate(M:F/A),functor(H,F,A),call(Pred,M:H).
+with_pred_head(Pred,F//A2):-A is A2+2, !,atom(F),current_predicate(F/A),!,functor(H,F,A),call(Pred,H).
+with_pred_head(Pred,F):- F\=(_:_),!,prolog_load_context(module,M),!,call(Pred,M:F).
+with_pred_head(Pred,F):- call(Pred,F). 
 
-is_static_predicate(FA):- predicate_property(FA,dynamic),!,fail.
-is_static_predicate(FA):- predicate_property(FA,undefined),!,fail.
-% is_static_predicate(M:F):-!,atom(F),between(1,11,A),current_predicate(M:F/A),functor(FA,F,A),is_static_predicate(M:FA),!.
-is_static_predicate(F):- F\=(_:_),!,prolog_load_context(module,M),!,is_static_predicate(M:F).
+is_static_predicate(F):- with_pred_head(is_static_predicate0,F).
 
-is_static_predicate(FA):-predicate_property(FA,static),!,predicate_property(FA,number_of_clauses(_)), 
+is_static_predicate0(M:F):-atom(F),predicate_property(M:F,static),!,predicate_property(F,number_of_clauses(_)),\+ predicate_property(F,dynamic).
+is_static_predicate0(FA):- predicate_property(FA,dynamic),!,fail.
+is_static_predicate0(FA):- predicate_property(FA,undefined),!,fail.
+% is_static_predicate0(M:F):-!,atom(F),between(1,11,A),current_predicate(M:F/A),functor(FA,F,A),is_static_predicate(M:FA),!.
+
+is_static_predicate0(FA):-predicate_property(FA,static),!,predicate_property(FA,number_of_clauses(_)), 
   catch(dynamic(FA),_,true),
   \+ predicate_property(FA,dynamic),
   catch(multifile(FA),_,true).
-is_static_predicate(FA):- once(predicate_property(FA,_)),
+is_static_predicate0(FA):- once(predicate_property(FA,_)),
     catch(dynamic(FA),_,true),
     \+ predicate_property(FA,dynamic),
     catch(multifile(FA),_,true).
