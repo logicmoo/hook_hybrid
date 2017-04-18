@@ -138,7 +138,6 @@ with_no_mpred_expansions(Goal):-
 % Call Using Source Module.
 %
 :- meta_predicate with_source_module(+,0).
-:- trace.
 with_source_module(OldSModule, Goal ):- '$current_source_module'(OldSModule),!,OldSModule:Goal.
 with_source_module(NewModule,Goal):-  
    '$current_source_module'(OldModule),
