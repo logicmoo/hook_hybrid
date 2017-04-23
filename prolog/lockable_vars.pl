@@ -46,7 +46,7 @@ vl:attr_unify_hook(_,VarValue):- verbatum_var(VarValue),!,variable_name_or_ref(V
 vl:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
 vl:attr_unify_hook(_,_):- thread_self_main,!.
 vl:attr_unify_hook(when_rest(Notify,N,Var,VVs),VarValue):- 
-  \+ (var(VarValue);verbatum_var(VarValue)),!,
+  \+ (var(VarValue);verbatum_var(VarValue)),!,               
   dmsg(error_locked_var(when_rest(Notify,N,Var,VVs),VarValue)),
   call(Notify,VarValue),!.
 

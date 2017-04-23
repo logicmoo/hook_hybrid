@@ -173,6 +173,7 @@
             my_module_sensitive_code/1.
 
 :- reexport(library(clause_attvars)).
+:- reexport(library(lockable_vars)).
 
 baseKB:first_std_provider(_,_,mpred_op_prolog).
 

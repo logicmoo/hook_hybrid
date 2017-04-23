@@ -591,6 +591,7 @@ def_meta_predicate(F,S,E):- trace_or_throw(def_meta_predicate(F,S,E)).
 
 %= 	 	 
 
+
 %% remove_pred( ?VALUE1, ?F, ?A) is semidet.
 %
 % Remove Predicate.
