@@ -8,8 +8,6 @@
 
 :- set_module(class(library)).
 
-:- use_module(library(dictoo)).
-:- use_module(library(attvar_serializer)).
 
 
 %% lock_vars( :TermVar) is semidet.

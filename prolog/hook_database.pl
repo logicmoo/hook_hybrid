@@ -545,10 +545,13 @@ ainz_clause(H,B):- clause_asserted(H,B)->true;call_provider(system:assertz((H:-B
 %
 % Split a Head+Body from Clause.
 %
-expand_to_hb( Var, H, B):- var(Var),!,dmsg(warn(expand_to_hb( Var, H, B))), when(nonvar(Var),expand_to_hb( Var, H, B)).
-expand_to_hb( M:((H :- B)),M:H,B):-!.
-expand_to_hb( ((H :- B)),H,B):-!.
+expand_to_hb( H,  H,  true) :- var(H),!.
+% expand_to_hb( Var, H, B):- var(Var),!,dmsg(warn(expand_to_hb( Var, H, B))), when(nonvar(Var),expand_to_hb( Var, H, B)).
+expand_to_hb((H :- B),H,B):-!.
+expand_to_hb( M:HB,  M:H,B):- !,expand_to_hb(HB,H,B).
+expand_to_hb(  ~(HB),   ~(H),B):- !,expand_to_hb(HB,H,B).
 expand_to_hb( H,  H,  true).
+
 
 
 
@@ -639,6 +642,7 @@ modulize_head_fb(From,H,Fallback,M:H):-
 %
 % PFC Clause For User Interface.
 %
+clause_asserted_i(Head):- clausify_attributes(Head,HeadI),!,clause_asserted(HeadI).
 clause_asserted_i(Head):- 
   \+ \+ ((
   % fully_expand_now_wte(assert,Head,HeadC),
@@ -754,7 +758,7 @@ retract_eq(HB):-expand_to_hb(HB,H,B),show_failure(modulize_head(H,MH)),clause_as
 %
 % Safely Paying Attention To Corner Cases Univ.
 %
-safe_univ(SCall,Univ):-string(SCall),!,atom_string(Call,SCall),[Call]=Univ.
+safe_univ(SCall,Univ):-string(SCall),!,maybe_notrace(atom_string(Call,SCall)),[Call]=Univ.
 safe_univ(Call,List):- notrace(safe_univ0(Call,List)),!.
 
 
