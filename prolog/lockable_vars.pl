@@ -39,12 +39,12 @@ vl:attr_unify_hook(when_rest(Notify,N,_Var,VVs),VarValue):-
     call(Notify,VarValue).
 
 vl:attr_unify_hook(when_rest(_,_,Var,_),VarValue):- unify_name_based0(Var, VarValue).
-vl:attr_unify_hook(_,VarValue):- verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
+vl:attr_unify_hook(_,VarValue):- locking_verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
 
 vl:attr_unify_hook(_,_):- \+ thread_self_main,!,fail.
 vl:attr_unify_hook(_,_):- thread_self_main,!.
 vl:attr_unify_hook(when_rest(Notify,N,Var,VVs),VarValue):- 
-  \+ (var(VarValue);verbatum_var(VarValue)),!,               
+  \+ (var(VarValue);locking_verbatum_var(VarValue)),!,               
   dmsg(error_locked_var(when_rest(Notify,N,Var,VVs),VarValue)),
   call(Notify,VarValue),!.
 
@@ -53,7 +53,14 @@ vl:attr_unify_hook(when_rest(Notify,N,Var,VVs),VarValue):- var(VarValue),!,
       -> true ; 
          put_attr(VarValue,vl,when_rest(Notify,N,Var,VVs))).
 
-vl:attr_unify_hook(_,VarValue):- verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
+vl:attr_unify_hook(_,VarValue):- locking_verbatum_var(VarValue),!,variable_name_or_ref(VarValue,_),!.
+
+
+% move to logicmoo_utils_common.pl? 
+locking_verbatum_var(Var):-var(Var),!,fail.
+locking_verbatum_var('$VAR'(_)).
+locking_verbatum_var('avar'(_)).
+locking_verbatum_var('avar'(_,_)).
 
 :- thread_local(t_l:varname_lock/1).
 
