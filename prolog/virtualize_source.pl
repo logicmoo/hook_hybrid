@@ -40,6 +40,7 @@
 
 :- set_module(class(library)).
 :- reexport(library(must_trace)).
+:- reexport(library(loop_check)).
 
 :- if( \+ current_op(_,_,(kb_shared))).
 
