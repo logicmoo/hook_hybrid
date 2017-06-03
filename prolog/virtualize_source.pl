@@ -118,6 +118,17 @@ ignore_mpreds_in_file(F):-atom(F),baseKB:ignore_file_mpreds(Base),atom(Base),ato
 
 get_virtualizer_mode(ge,F,A,HowIn):- declared_to_wrap(F,A,HowOut),!,must(HowIn=HowOut),HowOut\==never.
 
+/*
+*/
+:- dynamic baseKB:t/2.
+:- multifile baseKB:t/2.
+:- public baseKB:t/2.
+:- module_transparent baseKB:t/2.
+:- dynamic baseKB:t/1.
+:- multifile baseKB:t/1.
+:- public baseKB:t/1.
+:- module_transparent baseKB:t/1.
+
 :- multifile(baseKB:safe_wrap/3).
 :- dynamic(baseKB:safe_wrap/3).
 
@@ -288,6 +299,7 @@ virtualize_ereq(O,_):- bad_functor_check(O),!,fail.
 virtualize_ereq(isa,2).
 virtualize_ereq(genls,2).
 virtualize_ereq(t,_).
+virtualize_ereq(t,2).
 virtualize_ereq(t,3).
 
 virtualize_ereq(functorDeclares,1).
@@ -599,14 +611,16 @@ kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
 
 'do_decl_kb_shared'(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
 
-do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
+do_decl_kb_shared_1(M,F,A,PI):- \+ predicate_property(M:PI,imported_from(_)), predicate_property(M:PI,defined),!,do_decl_kb_shared_2(M,F,A,PI).
+% not possible do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
 do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(R)),R\==M,!,
    do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
+
 do_decl_kb_shared_1(M,F,A,PI):- current_predicate(F,R:PI),\+ predicate_property(R:PI,imported_from(_)),R\==M,!,
    do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
 do_decl_kb_shared_1(M,F,A,PI):- do_decl_kb_shared_2(M,F,A,PI),!.
   
-do_import(TM,M,F,A):- on_xf_cont((TM:import(M:F/A),TM:export(M:F/A))),
+do_import(TM,M,F,A):- must( TM \== lemur),  must( M \== lemur), on_xf_cont((TM:import(M:F/A),TM:export(M:F/A))),
    on_xf_cont((TM:discontiguous(M:F/A))),
    on_xf_cont((TM:multifile(M:F/A))),
    on_xf_cont((TM:public(M:F/A))),

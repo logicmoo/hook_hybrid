@@ -998,8 +998,6 @@ rebuild_pred_into(OMC,NMC,AssertZ,OtherTraits):-
 
 % :- ensure_loaded(hook_database).
 
-
-
 :- ignore((source_location(S,_),prolog_load_context(module,M),module_property(M,class(library)),
  forall(source_file(M:H,S),
  ignore((functor(H,F,A),
