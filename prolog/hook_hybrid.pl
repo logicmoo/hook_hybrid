@@ -488,7 +488,7 @@ only_3rd(With,CallerMt, PredMt, PI):- CallerMt:call(With,PredMt:PI).
 %
 to_canonical_mpi(PredMt:FA,MPI):-atom(PredMt),!,to_canonical_mpi(FA,PI),add_mi(PredMt,PI,MPI).
 to_canonical_mpi((PredMt:F)/A,MPI):- integer(A),!,functor(PI,F,A),add_mi(PredMt,PI,MPI).
-to_canonical_mpi((PredMt:F)//A2,MPI):-integer(A),!,A is A2 + 2, functor(PI,F,A),add_mi(PredMt,PI,MPI).
+to_canonical_mpi((PredMt:F)//A2,MPI):-integer(A2),!,A is A2 + 2, functor(PI,F,A),add_mi(PredMt,PI,MPI).
 to_canonical_mpi(F/A,MPI):- functor(P,F,A), functor(P,F,A),strip_module(P,PredMt,PI),add_mi(PredMt,PI,MPI).
 to_canonical_mpi(F//A2,MPI):- A is A2 + 2, functor(P,F,A),strip_module(P,PredMt,PI),add_mi(PredMt,PI,MPI).
 to_canonical_mpi(P,MPI):- strip_module(P,PredMt,PI),add_mi(PredMt,PI,MPI).
