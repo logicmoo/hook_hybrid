@@ -76,7 +76,7 @@
         asserta_if_new(:),
         asserta_new(:),
         assertz_if_new(:),
-        call_provider(0),
+        call_provider(*),
         clause_asserted(:),
         clause_asserted(:, ?),
         clause_asserted(:, ?, -),
@@ -491,6 +491,9 @@ paina(N):-call_provider(paina(N)).
 painz(N):-call_provider(painz(N)).
 
 
+:-multifile(ain/1).
+:-multifile(aina/1).
+:-multifile(ainz/1).
 :-module_transparent(ain/1).
 :-module_transparent(aina/1).
 :-module_transparent(ainz/1).
@@ -547,6 +550,7 @@ ainz_clause(H,B):- clause_asserted(H,B)->true;call_provider(system:assertz((H:-B
 %
 expand_to_hb( H,  H,  true) :- var(H),!.
 % expand_to_hb( Var, H, B):- var(Var),!,dmsg(warn(expand_to_hb( Var, H, B))), when(nonvar(Var),expand_to_hb( Var, H, B)).
+expand_to_hb(M:(M2:H :- B),HH,BB):-M==M2,!,expand_to_hb((M:H :- B),HH,BB).
 expand_to_hb((H :- B),H,B):-!.
 expand_to_hb( M:HB,  M:H,B):- !,expand_to_hb(HB,H,B).
 expand_to_hb(  ~(HB),   ~(H),B):- !,expand_to_hb(HB,H,B).
@@ -839,4 +843,5 @@ erase_safe_now(M,system:clause(A,B),REF):-!,
   ignore(((\+ atom_concat('$',_,F),(export(F/A) , current_predicate(system:F/A)->true; system:import(M:F/A))))),
   ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A]))))))))).
 
- 
+:- fixup_exports.
+

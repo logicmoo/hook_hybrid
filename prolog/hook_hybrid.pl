@@ -133,15 +133,20 @@ with_no_mpred_expansions(Goal):-
 :- system:import(with_no_mpred_expansions/1).
 
 
+
+module_sanity_check(NewModule):-
+  sanity((NewModule\==hook_database,NewModule\==mpred_core,NewModule\==hook_hybrid,NewModule\==mpred_kb_ops);
+   (dumpST,trace_or_throw(module_sanity_check(NewModule)),break)),!.
+
 %% with_source_module( +NewModule, :Goal) is semidet.
 %
 % Call Using Source Module.
 %
-:- meta_predicate with_source_module(+,0).
-with_source_module(OldSModule, Goal ):- '$current_source_module'(OldSModule),!,OldSModule:Goal.
+:- meta_predicate with_source_module(+,:).
 with_source_module(NewModule,Goal):-  
+  module_sanity_check(NewModule),
    '$current_source_module'(OldModule),
-   NewModule:each_call_cleanup(
+   each_call_cleanup(
       '$set_source_module'(NewModule),
           Goal, 
       '$set_source_module'(OldModule)).
@@ -150,10 +155,9 @@ with_source_module(NewModule,Goal):-
 %
 % Call Using Module.
 %
-:- meta_predicate call_from_module(+,+).
+:- meta_predicate call_from_module(+,*).
 
 call_from_module(NewModule,( H:-B ) ):- !, must(nonvar(H)),call_from_module(NewModule, clause_asserted_call(H,B) ).
-call_from_module(OldSModule, Goal ):- '$current_source_module'(OldSModule),!,OldSModule:Goal.
 % call_from_module(NewModule,Goal):- sanity((atom(NewModule),nonvar(Goal))),fail.
 call_from_module(NewModule,Goal):-
    '$current_typein_module'(OldModule),
