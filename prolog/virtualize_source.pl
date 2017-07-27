@@ -54,7 +54,8 @@
 
 
 :- module_transparent((
-                    'decl_kb_shared'/1,decl_as/2,(kb_shared)/1,
+                     'decl_kb_shared'/1,
+                    decl_as/2,(kb_shared)/1,
           virtualize_source/3,
           virtualize_code/3,
           virtualize_code_fa/5,
@@ -136,7 +137,7 @@ get_virtualizer_mode(ge,F,A,HowIn):- declared_to_wrap(F,A,HowOut),!,must(HowIn=H
 declared_to_wrap(O,_,_):- bad_functor_check(O),!,fail.
 declared_to_wrap(F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
 declared_to_wrap(F,A,HowIn):- clause_b(safe_wrap(F,A,HowIn)),!.
-declared_to_wrap(mtCycL,1,clause_b).
+declared_to_wrap(mtHybrid,1,clause_b).
 declared_to_wrap(F,A,dbreq):- virtualize_dbreq(F,A), virtualize_dbreq_source.
 declared_to_wrap(F,A,ereq):- clause_b(mpred_prop(F,A,prologHybrid)),!.
 declared_to_wrap(F,A,ereq):- virtualize_ereq(F,A), virtualize_ereq_source.
@@ -163,7 +164,7 @@ is_dynamic_module(tlbugger).
 is_dynamic_module(t_l).
 is_dynamic_module(prolog).
 is_dynamic_module(eggdrop).
-is_dynamic_module(M):- clause_b(mtCycL(M)).
+is_dynamic_module(M):- clause_b(mtHybrid(M)).
 
 is_static_module(system).
 is_static_module(file_scope).
@@ -305,7 +306,7 @@ virtualize_ereq(functorDeclares,1).
 
 virtualize_ereq(mtCore,1).
 virtualize_ereq(mtProlog,1).
-virtualize_ereq(mtCycL,1).
+virtualize_ereq(mtHybrid,1).
 virtualize_ereq(mtExact,1).
 virtualize_ereq(mtGlobal,1).
 virtualize_ereq(arity,2).
@@ -348,6 +349,7 @@ virtualize_ereq(==>,_).
 virtualize_ereq(<==>,_).
 virtualize_ereq((<--),2).
 
+% TODO BEGIN These need to be assigned the correct files
 
 virtualize_ereq(call_OnEachLoad,1).
 
@@ -382,6 +384,8 @@ virtualize_ereq(tAgent,1).
 virtualize_ereq(tCol,1).
 virtualize_ereq(ttTemporalType,1).
 
+% END These need to be assigned the correct files
+
 
 
 
@@ -391,12 +395,18 @@ virtualize_ereq(ttTemporalType,1).
 %
 % Clause User Microtheory.
 %
+
+
+%clause_b(M:Goal):- !,system:clause(M:Goal,true).
+%clause_b(Goal):-  clause(Goal,true).
+clause_b(Goal):-  baseKB:clause(Goal,true).
+
 %clause_b(M:Goal):-  !,clause(M:Goal,true).
 %clause_b(Goal):-  !,clause(baseKB:Goal,true).
 
 % lookup_u/cheaply_u/call_u/clause_b
 %clause_b(Goal):-  baseKB:call(call,Goal).
-clause_b(Goal):-  baseKB:clause(Goal,true).
+
 % clause_b(Goal):-  baseKB:clause(Goal,B),baseKB:call(B).
 
 %clause_b(Goal):-  baseKB:clause(Goal,B)*->call(B);clause_b0(Goal).
@@ -532,7 +542,7 @@ map_compound_args(Pred,Args,In,Out):- must(( compound(Args), compound(In), Args=
 
 could_safe_virtualize:- prolog_load_context(module,M), 
 
-     \+ clause_b(mtCycL(M)),
+     \+ clause_b(mtHybrid(M)),
      \+ ((current_prolog_flag(dialect_pfc,fwc); 
        (source_location(F,_W),( atom_concat(_,'.pfc.pl',F);atom_concat(_,'.plmoo',F);atom_concat(_,'.pfc',F))))).
 
@@ -602,8 +612,9 @@ decl_as_rev(MFA,[G1|G2]):-!,decl_as_rev(MFA,G1),!,decl_as_rev(MFA,G2),!.
 decl_as_rev(MFA,M:(G1,G2)):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
 decl_as_rev(MFA,M:[G1]):-!,decl_as_rev(MFA,M:G1),!.
 decl_as_rev(MFA,M:[G1|G2]):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
+decl_as_rev(M:F/A,OM:Pred):- !, check_mfa(M,F,A),
+  (call(OM:Pred,M:F/A)),!.
 decl_as_rev(M:F/A,Pred):- check_mfa(M,F,A),
-  % wdmsg(call(M:Pred,M:F/A)),
   must(call(M:Pred,M:F/A)).
 
 check_mfa(M,F,A):-sanity(atom(F)),sanity(integer(A)),sanity(current_module(M)).
@@ -614,7 +625,7 @@ maybe_define_if_not_static(M,PI):-
               functor_h(PI,F,A),
               asserta_if_new(baseKB:safe_wrap(F,A,ereq)),
               M:multifile(M:F/A),
-              M:export(M:F/A),
+              M:export(M:F/A), % TODO comment this out!
               M:public(M:F/A),
               %   on_f_throw( (M:F/A)\== (baseKB:loaded_external_kbs/1)),
               M:discontiguous(M:F/A),
@@ -625,11 +636,13 @@ maybe_define_if_not_static(M,PI):-
 
 kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
 
+kb_global(SPEC):- decl_as('decl_kb_shared',SPEC),!.
+
 :- multifile(baseKB:'already_decl'/4).
 :- dynamic(baseKB:'already_decl'/4).
 
-
-'decl_kb_shared'(M:'==>'/A):- !, break,dmsg(skip('decl_kb_shared'(M:'==>'/A))).
+% TODO comment this out!
+% 'decl_kb_shared'(M:'==>'/A):- !, break,dmsg(skip('decl_kb_shared'(M:'==>'/A))).
 
 'decl_kb_shared'(M:F/A):- check_mfa(M,F,A),!,
   (baseKB:'already_decl'(kb_shared,M,F,A)->true;
@@ -640,9 +653,9 @@ kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
 
 'do_decl_kb_shared'(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
 
-do_decl_kb_shared_1(M,F,A,PI):- M\=baseKB,M\=elmt,M\=rdf_rewrite,\+ clause(baseKB:using_pfc(user,M,pfc_mod),true),dumpST,break,(trace_or_throw(do_decl_kb_shared_m(M,F,A,PI))).
+%do_decl_kb_shared_1(M,F,A,PI):- M\=baseKB,M\=elmt,M\=rdf_rewrite,\+ clause(baseKB:using_pfc(user,M,pfc_mod),true),dumpST,break,(trace_or_throw(do_decl_kb_shared_m(M,F,A,PI))).
 %do_decl_kb_shared_1(M,F,A,PI):- if_defined(mpred_database_term(F,A,_),F = ~),dmsg(trace_or_throw(do_decl_kb_shared_1(M,F,A,PI))).
-do_decl_kb_shared_1(M,F,A,PI):- baseKB:'already_decl'(kb_local,M,F,A), (trace_or_throw(already_decl(kb_local,M,F,A,PI))).
+do_decl_kb_shared_1(M,F,A,PI):- baseKB:'already_decl'(Other,M,F,A), Other \== (kb_shared), dmsg(warn(trace_or_throw(already_decl(Other,M,F,A,PI)))),!.
 
 do_decl_kb_shared_1(M,F,A,PI):- \+ predicate_property(M:PI,imported_from(_)), predicate_property(M:PI,defined),!,do_decl_kb_shared_2(M,F,A,PI).
 % not possible do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
@@ -653,31 +666,39 @@ do_decl_kb_shared_1(M,F,A,PI):- current_predicate(F,R:PI),\+ predicate_property(
    do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
 do_decl_kb_shared_1(M,F,A,PI):- do_decl_kb_shared_2(M,F,A,PI),!.
   
-do_import(TM,M,F,A):- 
-   must((TM:import(M:F/A),TM:export(TM:F/A))),
-   must((TM:module_transparent(M:F/A))). % in case this has clauses th
 
 do_decl_kb_shared_2(M,F,A,PI):- 
    nop(dmsg(('do_decl_kb_shared'(M,F,A)))),
  must_det_l((
    maybe_define_if_not_static(M,PI),
-   do_import(system,M,F,A),   
+   M:export(M:F/A),
    do_import(baseKB,M,F,A),
-   do_import(pfc_repl,M,F,A),   
-   do_import(pfc,M,F,A),   
+   do_import(pfc_toplevel,M,F,A),   
+   do_import(pfc_mod,M,F,A),   
    do_import(pfc_lib,M,F,A),   
+   do_import(mpred_type_isa,M,F,A),
+% TODO BEGIN comment these out!
    do_import(system,M,F,A),   
-   do_import(user,M,F,A),   
-   do_import(mpred_type_isa,M,F,A),   
+   do_import(user,M,F,A),
+   do_import(header_sane,M,F,A),   
+      
    '$current_source_module'(SM),do_import(SM,M,F,A),   
    '$current_typein_module'(TM),do_import(TM,M,F,A),
+% TODO END comment these out!
    decl_wrapped(M,F,A,ereq))).
 
    % on_f_throw( (M:F/A)\== (lmcache:loaded_external_kbs/1)),
-   % (find_and_call(mtCycL(M))->ain(baseKB:prologHybrid(F));true),
+   % (find_and_call(mtHybrid(M))->ain(baseKB:prologHybrid(F));true),
+
+% TODO uncomment these out!
+%do_import(system,M,F,A):-throw(unexpected(do_import(system,M,F,A))).
+%do_import(user,M,F,A):-throw(unexpected(do_import(user,M,F,A))).
+do_import(TM,M,F,A):- 
+   must((TM:import(M:F/A),TM:export(TM:F/A))),!.
+   % must((TM:module_transparent(M:F/A))). % in case this has clauses th
 
 decl_wrapped(_M,F,A,How):-
- assert_if_new(rdf_rewrite:arity(F,A)),
+ assert_if_new(rdf_rewrite:arity(F,A)), % TODO puts this in Local Mt
  assert_if_new(baseKB:safe_wrap(F,A,How)).
  % once((M==baseKB->true;assert_if_new(baseKB:predicateConventionMt(F,M)))).
 
@@ -721,13 +742,21 @@ kb_local(SPEC):- decl_as('decl_kb_local',SPEC),!.
 
 do_decl_kb_local_1(M,F,A,_):- baseKB:'already_decl'(kb_shared,M,F,A),!. % ,dmsg(baseKB:'already_decl'(kb_shared,M,F,A)).
 
-do_decl_kb_local_1(M,F,A,PI):- \+ predicate_property(M:PI,inherited_from(_)), predicate_property(M:PI,defined),!,do_decl_kb_local_2(M,F,A,PI).
+do_decl_kb_local_1(M,F,A,PI):- 
+  \+ predicate_property(M:PI,inherited_from(_)), 
+  predicate_property(M:PI,defined),!,
+  nop((show_call(pfc(rediscovered),do_decl_kb_local_2(M,F,A,PI)))).
 % not possible do_decl_kb_local_1(M,F,A,PI):- predicate_property(M:PI,inherited_from(M)),!,do_decl_kb_local_2(M,F,A,PI).
-do_decl_kb_local_1(M,F,A,PI):- predicate_property(M:PI,inherited_from(R)),R\==M,!,
-   do_decl_kb_local_2(R,F,A,PI),do_inherit(M,R,F,A).
+do_decl_kb_local_1(M,F,A,PI):- 
+  predicate_property(M:PI,inherited_from(R)),R\==M,!,
+  do_decl_kb_local_2(R,F,A,PI),
+  show_call(pfc(inherited),do_import(M,R,F,A)).
 
-do_decl_kb_local_1(M,F,A,PI):- current_predicate(F,R:PI),\+ predicate_property(R:PI,inherited_from(_)),R\==M,!,
-   do_decl_kb_local_2(R,F,A,PI),do_inherit(M,R,F,A).
+do_decl_kb_local_1(M,F,A,PI):- current_predicate(F,R:PI), 
+   \+ predicate_property(R:PI,inherited_from(_)),
+   R\==M,!,
+   show_call(pfc(found_peer),do_import(M,R,F,A)).
+
 do_decl_kb_local_1(M,F,A,PI):- do_decl_kb_local_2(M,F,A,PI),!.
   
 
@@ -742,14 +771,6 @@ do_decl_kb_local_2(M,F,A,PI):-
   %   on_f_throw( (M:F/A)\== (baseKB:loaded_external_kbs/1)),
   M:discontiguous(M:F/A),
   M:module_transparent(M:F/A),
-
-%   do_inherit(baseKB,M,F,A),
-%   do_inherit(pfc,M,F,A),
-%   do_inherit(system,M,F,A),   
-%   do_inherit(user,M,F,A),   
-%   do_inherit(mpred_type_isa,M,F,A),   
-%   '$current_source_module'(SM),do_inherit(SM,M,F,A),   
-%   '$current_typein_module'(TM),do_inherit(TM,M,F,A),
    decl_wrapped(M,F,A,ereq))).
 
 do_inherit(_SM,_M,_F,_A).

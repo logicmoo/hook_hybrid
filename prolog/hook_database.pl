@@ -175,6 +175,11 @@
 :- reexport(library(clause_attvars)).
 :- reexport(library(lockable_vars)).
 
+:-multifile(baseKB:first_std_provider/3).
+:-multifile(baseKB:next_std_provider/3).
+:-dynamic(baseKB:first_std_provider/3).
+:-dynamic(baseKB:next_std_provider/3).
+
 baseKB:first_std_provider(_,_,mpred_op_prolog).
 
 :- meta_predicate clause_safe(:, ?).
@@ -370,13 +375,6 @@ eraseall(M:F,A):-!,forall((current_predicate(M:F/A),functor_catch(C,F,A)),forall
 eraseall(F,A):-forall((current_predicate(M:F/A),functor_catch(C,F,A)),forall(system:clause(M:C,B,X),erase_safe(system:clause(M:C,B,X),X))).
 
 
-:-thread_local(t_l:std_provider_asserted/3).
-:-thread_local(t_l:current_std_provider/1).
-:-dynamic(baseKB:first_std_provider/2).
-:-dynamic(baseKB:next_std_provider/2).
-:-multifile(baseKB:first_std_provider/2).
-:-multifile(baseKB:next_std_provider/2).
-
 %= 	 	 
 
 %% mpred_provider( ?OP, ?Term, ?PROVIDER) is semidet.
@@ -384,6 +382,8 @@ eraseall(F,A):-forall((current_predicate(M:F/A),functor_catch(C,F,A)),forall(sys
 % Hook To [std_provider/3] For Module Logicmoo_util_database.
 % Managed Predicate Provider.
 %
+:-thread_local(t_l:std_provider_asserted/3).
+:-thread_local(t_l:current_std_provider/1).
 std_provider(OP,Term,PROVIDER):- t_l:std_provider_asserted(OP,Term,PROVIDER).
 std_provider(_,_,PROVIDER):- t_l:current_std_provider(PROVIDER).
 std_provider(OP,Term,PROVIDER):- baseKB:first_std_provider(OP,Term,PROVIDER).
@@ -709,6 +709,7 @@ retractall_i(H):-expand_to_hb(H,HH,_),forall(clause_i(HH,_,Ref),erase(Ref)).
 
 :- dynamic(ereq/1).
 :- module_transparent(ereq/1).
+%ereq(mtHybrid(H)):- !, baseKB:mtHybrid(H).
 ereq(C):- find_and_call(C).
 
 :- dynamic(dbreq/1).

@@ -133,10 +133,17 @@ with_no_mpred_expansions(Goal):-
 :- system:import(with_no_mpred_expansions/1).
 
 
+insane_module(hook_database).
+% insane_module(user) :- \+ '$current_source_module'(user).
+insane_module(mpred_core).
+insane_module(hook_hybrid).
+insane_module(mpred_kb_ops).
+insane_module(mpred_type_isa).
+insane_module(pfc_lib).
 
 module_sanity_check(NewModule):-
-  sanity((NewModule\==hook_database,NewModule\==mpred_core,NewModule\==hook_hybrid,NewModule\==mpred_kb_ops);
-   (dumpST,trace_or_throw(module_sanity_check(NewModule)),break)),!.
+  ( ( \+ insane_module(NewModule));
+   (dumpST,trace_or_throw(module_sanity_check(NewModule)))),!.
 
 %% with_source_module( +NewModule, :Goal) is semidet.
 %
