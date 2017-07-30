@@ -566,9 +566,9 @@ expand_to_hb( H,  H,  true).
 is_visible_module(A):-var(A),!,fail.
 is_visible_module(user).
 is_visible_module(system).
-%is_visible_module(Inherited):-'$current_source_module'(E), default_module(E,Inherited).
+is_visible_module(Inherited):-'$current_source_module'(E), default_module(E,Inherited).
 %is_visible_module(Inherited):-'$current_typein_module'(E), default_module(E,Inherited).
-%is_visible_module(baseKB).
+is_visible_module(baseKB).
 
 
 simple_var(Var):- var(Var),\+ attvar(Var).

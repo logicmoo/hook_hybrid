@@ -15,29 +15,39 @@
 % File: /opt/PrologMUD/pack/logicmoo_base/prolog/logicmoo/util/logicmoo_util_structs.pl
 :- module(virtualize_source,
           [
-          'decl_kb_shared'/1,
-          decl_as/2,
-          virtualize_source_file/0,
-          virtualize_source/3,
-          virtualize_code/3,
-          virtualize_code_fa/5,
-          virtualize_code_each/4,
-          virtualize_ereq/2,
-          safe_virtualize/3,
-          sd_goal_expansion/3,
-          swc/0,
-          vwc/0,
-          check_mfa/3,
-          nb_current_or_nil/2,
-          skipped_dirs/1,
-          ignore_mpreds_in_file/1,
-          ignore_mpreds_in_file/0,
-          (kb_shared)/1,
-          (kb_local)/1,
-          clause_b/1,
-          cnas/3,
-          same_terms/2,          
-          warn_if_static/2]).
+%ereq/1,dbreq/1,
+check_mfa/3,
+clause_b/1,
+cnas/3,
+create_predicate_inheritance/3,
+create_predicate_inheritance_0/3,
+current_assertion_module/1,
+decl_as/2,
+decl_kb_local/1,
+decl_kb_shared/1,
+ignore_mpreds_in_file/0,
+ignore_mpreds_in_file/1,
+(kb_global)/1,
+(kb_local)/1,
+(kb_shared)/1,
+make_as_dynamic/4,
+predicate_m_f_a_decl/4,
+nb_current_or_nil/2,
+safe_virtualize/3,
+same_terms/2,          
+sd_goal_expansion/3,
+skipped_dirs/1,
+suggest_m/1,
+swc/0,
+virtualize_code/3,
+virtualize_code_each/4,
+virtualize_code_fa/5,
+virtualize_ereq/2,
+virtualize_source/3,
+virtualize_source_file/0,
+vwc/0,
+warn_if_static/2
+]).
 
 :- set_module(class(library)).
 :- reexport(library(must_trace)).
@@ -54,20 +64,38 @@
 
 
 :- module_transparent((
-                     'decl_kb_shared'/1,
-                    decl_as/2,(kb_shared)/1,
-          virtualize_source/3,
-          virtualize_code/3,
-          virtualize_code_fa/5,
-          %ereq/1,dbreq/1,
-          swc/0,
-          vwc/0,
-          check_mfa/3,
-          skipped_dirs/1,
-          ignore_mpreds_in_file/1,
-          ignore_mpreds_in_file/0,
-          clause_b/1,
-          warn_if_static/2)).
+%ereq/1,dbreq/1,
+check_mfa/3,
+clause_b/1,
+cnas/3,
+create_predicate_inheritance/3,
+create_predicate_inheritance_0/3,
+current_assertion_module/1,
+decl_as/2,
+decl_kb_local/1,
+decl_kb_shared/1,
+ignore_mpreds_in_file/0,
+ignore_mpreds_in_file/1,
+(kb_global)/1,
+(kb_local)/1,
+(kb_shared)/1,
+make_as_dynamic/4,
+nb_current_or_nil/2,
+safe_virtualize/3,
+same_terms/2,          
+sd_goal_expansion/3,
+skipped_dirs/1,
+suggest_m/1,
+swc/0,
+virtualize_code/3,
+virtualize_code_each/4,
+virtualize_code_fa/5,
+virtualize_ereq/2,
+virtualize_source/3,
+virtualize_source_file/0,
+vwc/0,
+warn_if_static/2
+          )).
 
 :- module_transparent((virtualize_ereq_source/0)).
 
@@ -113,15 +141,18 @@ ignore_mpreds_in_file(F):-if_defined(baseKB:ignore_file_mpreds(F),fail),!.
 ignore_mpreds_in_file(F):-skipped_dirs(Base),atom(Base),atom_concat(Base,_,F),!.
 ignore_mpreds_in_file(F):-atom(F),baseKB:ignore_file_mpreds(Base),atom(Base),atom_concat(Base,_,F),!.
 
-%% declared_to_wrap( ?Functor, ?Arity, ?Wrapper) is semidet.
+%% declared_to_wrap(M, ?Functor, ?Arity, ?Wrapper) is semidet.
 %
 % Virtualizer Shared Code.
 %
 
-get_virtualizer_mode(ge,F,A,HowIn):- declared_to_wrap(F,A,HowOut),!,must(HowIn=HowOut),HowOut\==never.
+get_virtualizer_mode(ge,F,A,HowIn):- suggest_m(M), declared_to_wrap(M,F,A,HowOut),!,must(HowIn=HowOut),HowOut\==never.
+
+
+current_assertion_module(M):- if_defined(defaultAssertMt(M),M=baseKB).
+suggest_m(M):- is_visible_module(M).
 
 /*
-*/
 :- dynamic baseKB:t/2.
 :- multifile baseKB:t/2.
 :- public baseKB:t/2.
@@ -130,22 +161,24 @@ get_virtualizer_mode(ge,F,A,HowIn):- declared_to_wrap(F,A,HowOut),!,must(HowIn=H
 :- multifile baseKB:t/1.
 :- public baseKB:t/1.
 :- module_transparent baseKB:t/1.
+*/
 
-:- multifile(baseKB:safe_wrap/3).
-:- dynamic(baseKB:safe_wrap/3).
+:- multifile(baseKB:safe_wrap/4).
+:- module_transparent(baseKB:safe_wrap/4).
+:- dynamic(baseKB:safe_wrap/4).
 
-declared_to_wrap(O,_,_):- bad_functor_check(O),!,fail.
-declared_to_wrap(F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
-declared_to_wrap(F,A,HowIn):- clause_b(safe_wrap(F,A,HowIn)),!.
-declared_to_wrap(mtHybrid,1,clause_b).
-declared_to_wrap(F,A,dbreq):- virtualize_dbreq(F,A), virtualize_dbreq_source.
-declared_to_wrap(F,A,ereq):- clause_b(mpred_prop(F,A,prologHybrid)),!.
-declared_to_wrap(F,A,ereq):- virtualize_ereq(F,A), virtualize_ereq_source.
-declared_to_wrap(F,A,_):- prolog_load_context(module,M),never_virtualize(M:F/A),!,fail.
-declared_to_wrap(F,A,_):-      clause_b(mpred_prop(F,A,prologBuiltin)),!,fail.
-declared_to_wrap(F,A,call_u):- clause_b(mpred_prop(F,A,_)),!.
+declared_to_wrap(_M,O,_,_):- bad_functor_check(O),!,fail.
+declared_to_wrap(_M,F,A,on_x_debug):- integer(A),virtualize_safety(F,A).
+declared_to_wrap(M,F,A,HowIn):- clause_b(safe_wrap(M,F,A,HowIn)),!.
+declared_to_wrap(_M,mtHybrid,1,clause_b).
+declared_to_wrap(_M,F,A,dbreq):- virtualize_dbreq(F,A), virtualize_dbreq_source.
+declared_to_wrap(M,F,A,ereq):- clause_b(mpred_prop(M,F,A,prologHybrid)),!.
+declared_to_wrap(M,F,A,ereq):- virtualize_m_ereq(M,F,A), virtualize_ereq_source.
+declared_to_wrap(M,F,A,_):- prolog_load_context(module,M),never_virtualize(M:F/A),!,fail.
+declared_to_wrap(M,F,A,_):-      clause_b(mpred_prop(M,F,A,prologBuiltin)),!,fail.
+declared_to_wrap(M,F,A,call_u):- clause_b(mpred_prop(M,F,A,_)),!.
 
-declared_to_wrap(F,A,ereq):- atom(F),integer(A),
+declared_to_wrap(M,F,A,ereq):- atom(F),integer(A),
    functor(Goal,F,A),
    % member(M,[baseKB,lmcache,lmconf]),
    baseKB = M,
@@ -207,18 +240,18 @@ never_virtualize(O):- bad_functor_check(O),!,fail.
 never_virtualize(_:','/2):-!,fail.
 never_virtualize(_:F/_):- !, never_virtualize_atom(F),!.
 never_virtualize(thread_util:_/A):-integer(A). % prevents query
-never_virtualize(_:F/A):- clause_b(mpred_prop(F,A,prologBuiltin)),!.
-never_virtualize(_:F/A):- current_predicate(mpred_core:F/A),!.
-never_virtualize(_:F/A):- functor(P,F,A),source_file(M:P,_SF), 
+never_virtualize(M:F/A):- clause_b(mpred_prop(M,F,A,prologBuiltin)),!.
+never_virtualize(_M:F/A):- current_predicate(mpred_core:F/A),!.
+never_virtualize(M:F/A):- functor(P,F,A),source_file(M:P,_SF), 
    \+ predicate_property(M:P,meta_predicate(_)), 
    \+ predicate_property(M:P,transparent),  
   % dmsg(never_virtualize('@'(F/A,M),SF)),
-  ain(baseKB:mpred_prop(F,A,prologBuiltin)). 
+  ain(baseKB:mpred_prop(M,F,A,prologBuiltin)). 
 never_virtualize(M:F/A):- functor(P,F,A),source_file(M:P,SF),
    \+ predicate_property(M:P,meta_predicate(_)), 
    \+ predicate_property(M:P,transparent), !,
   dmsg(never_virtualize(M:F/A,SF)),
-  aina(baseKB:mpred_prop(F,A,prologBuiltin)).
+  aina(baseKB:mpred_prop(M,F,A,prologBuiltin)).
 never_virtualize(_:F/_):- !, never_virtualize_atom(F),!.
 never_virtualize(_:FA):- !,never_virtualize(FA),!.
 
@@ -250,7 +283,7 @@ never_virtualize_atom(aina).
 never_virtualize_atom(decl_as).
 never_virtualize_atom(ainz).
 never_virtualize_atom((':-')).
-never_virtualize_atom(F):- clause_b(mpred_prop(F,_,pfcBuiltin)). % @todo not yet created
+never_virtualize_atom(F):- suggest_m(M), clause_b(mpred_prop(M,F,_,pfcBuiltin)). % @todo not yet created
 %never_virtualize_atom(F):- show_success(plz_never_virtualize(F)).
 
 never_virtualize_atom(Atom):- never_virtualize2(Atom).
@@ -291,6 +324,7 @@ virtualize_dbreq(erase,1).
 
 
 
+virtualize_m_ereq(_M,F,A):- virtualize_ereq(F,A).
 virtualize_ereq(O,_):- bad_functor_check(O),!,fail.
 
 %virtualize_ereq(lmcache:loaded_external_kbs,1).
@@ -324,7 +358,7 @@ virtualize_ereq(props,2).
 
 
 
-virtualize_ereq(mpred_prop,3).
+virtualize_ereq(mpred_prop,4).
 
 virtualize_ereq(pfcControlled,1).
 virtualize_ereq(pfcRHS,1).
@@ -349,47 +383,48 @@ virtualize_ereq(==>,_).
 virtualize_ereq(<==>,_).
 virtualize_ereq((<--),2).
 
+
+virtualize_ereq(F,A):-virtualize_ereq_plz_move_dmiles(F,A).
+
 % TODO BEGIN These need to be assigned the correct files
 
-virtualize_ereq(call_OnEachLoad,1).
+virtualize_ereq_plz_move_dmiles(call_OnEachLoad,1).
 
-virtualize_ereq(prologKIF,1).
-virtualize_ereq(prologPTTP,1).
+virtualize_ereq_plz_move_dmiles(prologKIF,1).
+virtualize_ereq_plz_move_dmiles(prologPTTP,1).
 
-virtualize_ereq(use_ideep_swi,0).
-virtualize_ereq(meta_argtypes,1).
-virtualize_ereq(coerce_hook,_).
-virtualize_ereq(agent_text_command,_).
-virtualize_ereq(agent_command,_).
-virtualize_ereq(isa,2).
-virtualize_ereq(genls,2).
-virtualize_ereq(nameString,2).
-virtualize_ereq(argIsa,3).
-virtualize_ereq(argQuotedIsa,3).
-virtualize_ereq(cyckb_t_e2c,3).
-virtualize_ereq(cyckb_t_e2c,4).
-virtualize_ereq(cyckb_t_e2c,_).
-virtualize_ereq(completeExtentEnumerable,1).
-virtualize_ereq(completelyAssertedCollection,1).
-virtualize_ereq(constrain_args_pttp,2).
-virtualize_ereq(cycPlus2,2).
-virtualize_ereq(cycPred,2).
-virtualize_ereq(decided_not_was_isa,2).
-virtualize_ereq(mudKeyword,2).
-virtualize_ereq(resultIsa,2).
-virtualize_ereq(tCol,1).
-virtualize_ereq(tPred,1).
-virtualize_ereq(tRelation,1).
-virtualize_ereq(tAgent,1).
-virtualize_ereq(tCol,1).
-virtualize_ereq(ttTemporalType,1).
+virtualize_ereq_plz_move_dmiles(use_ideep_swi,0).
+virtualize_ereq_plz_move_dmiles(meta_argtypes,1).
+virtualize_ereq_plz_move_dmiles(coerce_hook,_).
+virtualize_ereq_plz_move_dmiles(agent_text_command,_).
+virtualize_ereq_plz_move_dmiles(agent_command,_).
+virtualize_ereq_plz_move_dmiles(isa,2).
+virtualize_ereq_plz_move_dmiles(genls,2).
+virtualize_ereq_plz_move_dmiles(nameString,2).
+virtualize_ereq_plz_move_dmiles(argIsa,3).
+virtualize_ereq_plz_move_dmiles(argQuotedIsa,3).
+virtualize_ereq_plz_move_dmiles(cyckb_t_e2c,3).
+virtualize_ereq_plz_move_dmiles(cyckb_t_e2c,4).
+virtualize_ereq_plz_move_dmiles(cyckb_t_e2c,_).
+virtualize_ereq_plz_move_dmiles(completeExtentEnumerable,1).
+virtualize_ereq_plz_move_dmiles(completelyAssertedCollection,1).
+virtualize_ereq_plz_move_dmiles(constrain_args_pttp,2).
+virtualize_ereq_plz_move_dmiles(cycPlus2,2).
+virtualize_ereq_plz_move_dmiles(cycPred,2).
+virtualize_ereq_plz_move_dmiles(decided_not_was_isa,2).
+virtualize_ereq_plz_move_dmiles(mudKeyword,2).
+virtualize_ereq_plz_move_dmiles(resultIsa,2).
+virtualize_ereq_plz_move_dmiles(tCol,1).
+virtualize_ereq_plz_move_dmiles(tPred,1).
+virtualize_ereq_plz_move_dmiles(tRelation,1).
+virtualize_ereq_plz_move_dmiles(tAgent,1).
+virtualize_ereq_plz_move_dmiles(tCol,1).
+virtualize_ereq_plz_move_dmiles(ttTemporalType,1).
 
 % END These need to be assigned the correct files
 
 
 
-
-:- dynamic(baseKB:t/2).
 
 %% clause_b( ?C) is semidet.
 %
@@ -397,17 +432,13 @@ virtualize_ereq(ttTemporalType,1).
 %
 
 
-%clause_b(M:Goal):- !,system:clause(M:Goal,true).
-%clause_b(Goal):-  clause(Goal,true).
-clause_b(Goal):-  baseKB:clause(Goal,true).
-
-%clause_b(M:Goal):-  !,clause(M:Goal,true).
-%clause_b(Goal):-  !,clause(baseKB:Goal,true).
+clause_b(M:Goal):- !, M:clause(Goal,B),M:call(B).
+clause_b(Goal):- (clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal).
 
 % lookup_u/cheaply_u/call_u/clause_b
 %clause_b(Goal):-  baseKB:call(call,Goal).
+%clause_b(M:Goal):- !, (clause(M:Goal,true);clause(Goal,true)).
 
-% clause_b(Goal):-  baseKB:clause(Goal,B),baseKB:call(B).
 
 %clause_b(Goal):-  baseKB:clause(Goal,B)*->call(B);clause_b0(Goal).
 %clause_b(Goal):-  baseKB:clause(Goal,true)*->true;clause_b0(Goal).
@@ -457,18 +488,20 @@ xform_arity(C,F,A):- compound(C), functor(C,F,A).
 xform(_,_):-!,fail.
 xform(Var,Out):- \+compound(Var),!,Out=Var.
 xform(Nonvar,Out):- \+ current_prolog_flag(subclause_expansion,true),!,Nonvar=Out.
-%xform(isa(C,P),mpred_prop(F,A,P)):-nonvar(P),!,is_reltype(P),xform_arity(C,F,A).
-%xform(isa(C,P),(ttRelationType(P),mpred_prop(F,A,P))):-nonvar(C),xform_arity(C,F,A),is_reltype(P),!.
-% xform(mpred_isa(C,P),mpred_prop(F,A,P)):- xform_arity(C,F,A),!.
-xform(hybrid_support(F,A),mpred_prop(F,A,prologHybrid)):-!.
-% xform(arity(F,A),mpred_prop(F,A,arity)):-!.
-xform(mpred_prop(F,A,P),mpred_prop(F,A,P)):-!.
-xform(PC,mpred_prop(F,A,P)):- PC=..[P,C],is_reltype(P),!,xform_arity(C,F,A).
-xform(PFA,mpred_prop(F,A,P)):- PFA=..[P,F,A],is_reltype(P),!.
+%xform(isa(C,P),mpred_prop(M,F,A,P)):-nonvar(P),!,is_reltype(P),xform_arity(C,F,A).
+%xform(isa(C,P),(ttRelationType(P),mpred_prop(M,F,A,P))):-nonvar(C),xform_arity(C,F,A),is_reltype(P),!.
+% xform(mpred_isa(C,P),mpred_prop(M,F,A,P)):- xform_arity(C,F,A),!.
+xform(hybrid_support(F,A),mpred_prop(_M,F,A,prologHybrid)):-!.
+% xform(arity(F,A),mpred_prop(M,F,A,arity)):-!.
+xform(mpred_prop(M,F,A,P),mpred_prop(M,F,A,P)):-!.
+
+
+xform(PC,mpred_prop(M,F,A,P)):- current_assertion_module(M), PC=..[P,C],is_reltype(P),!,xform_arity(C,F,A).
+xform(PFA,mpred_prop(M,F,A,P)):- defaultAssertMt(M),PFA=..[P,F,A],is_reltype(P),!.
 xform(In,PART):- map_compound_args(xform,In,PART),!.
 
-:-multifile(baseKB:ttRelationType/1).
-:-dynamic(baseKB:ttRelationType/1).
+%:-multifile(baseKB:ttRelationType/1).
+%:-dynamic(baseKB:ttRelationType/1).
 is_reltype(Var):-var(Var),!,fail.
 is_reltype(pfcControlled).
 is_reltype(prologHybrid).
@@ -612,78 +645,74 @@ decl_as_rev(MFA,[G1|G2]):-!,decl_as_rev(MFA,G1),!,decl_as_rev(MFA,G2),!.
 decl_as_rev(MFA,M:(G1,G2)):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
 decl_as_rev(MFA,M:[G1]):-!,decl_as_rev(MFA,M:G1),!.
 decl_as_rev(MFA,M:[G1|G2]):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
-decl_as_rev(M:F/A,OM:Pred):- !, check_mfa(M,F,A),
-  (call(OM:Pred,M:F/A)),!.
+decl_as_rev(M:F/A,OM:Pred):- check_mfa(OM,F,A),
+  must(call(OM:Pred,M:F/A)),!.
 decl_as_rev(M:F/A,Pred):- check_mfa(M,F,A),
   must(call(M:Pred,M:F/A)).
 
 check_mfa(M,F,A):-sanity(atom(F)),sanity(integer(A)),sanity(current_module(M)).
 
 
-maybe_define_if_not_static(M,PI):-
-  must_det_l((
-              functor_h(PI,F,A),
-              asserta_if_new(baseKB:safe_wrap(F,A,ereq)),
-              M:multifile(M:F/A),
-              M:export(M:F/A), % TODO comment this out!
-              M:public(M:F/A),
-              %   on_f_throw( (M:F/A)\== (baseKB:loaded_external_kbs/1)),
-              M:discontiguous(M:F/A),
-              M:module_transparent(M:F/A),
-              (is_static_predicate(M:PI) -> true ;
-              (predicate_property(M:PI,dynamic) -> true ; on_xf_cont(M:dynamic(M:PI)))))),!.
 
+kb_shared(SPEC):- decl_as(decl_kb_shared,SPEC),!.
 
-kb_shared(SPEC):- decl_as('decl_kb_shared',SPEC),!.
+kb_global(SPEC):- decl_as(decl_kb_shared,SPEC),!.
 
-kb_global(SPEC):- decl_as('decl_kb_shared',SPEC),!.
-
-:- multifile(baseKB:'already_decl'/4).
-:- dynamic(baseKB:'already_decl'/4).
+:- multifile(lmcache:already_decl/4).
+:- dynamic(lmcache:already_decl/4).
+predicate_m_f_a_decl(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
 % TODO comment this out!
-% 'decl_kb_shared'(M:'==>'/A):- !, break,dmsg(skip('decl_kb_shared'(M:'==>'/A))).
+decl_kb_shared(M:'==>'/A):- !, dmsg(skip(decl_kb_shared(M:'==>'/A))).
 
-'decl_kb_shared'(M:F/A):- check_mfa(M,F,A),!,
-  (baseKB:'already_decl'(kb_shared,M,F,A)->true;
-  (asserta(baseKB:'already_decl'(kb_shared,M,F,A)),'do_decl_kb_shared'(M,F,A))),!.
-'decl_kb_shared'(MFA):- trace_or_throw(bad_kb_shared(MFA)).
+decl_kb_shared(M:F/A):- check_mfa(M,F,A),!,
+  (lmcache:already_decl(kb_shared,M,F,A)->true;
+  (asserta(lmcache:already_decl(kb_shared,M,F,A)),do_decl_kb_shared(M,F,A))),!.
+decl_kb_shared(MFA):- trace_or_throw(bad_kb_shared(MFA)).
 
-'do_decl_kb_shared'(M,prologSingleValued,0):- trace_or_throw('do_decl_kb_shared'(M,prologSingleValued,0)).
+do_decl_kb_shared(M,prologSingleValued,0):- trace_or_throw(do_decl_kb_shared(M,prologSingleValued,0)).
 
-'do_decl_kb_shared'(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
+do_decl_kb_shared(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
 
 %do_decl_kb_shared_1(M,F,A,PI):- M\=baseKB,M\=elmt,M\=rdf_rewrite,\+ clause(baseKB:using_pfc(user,M,pfc_mod),true),dumpST,break,(trace_or_throw(do_decl_kb_shared_m(M,F,A,PI))).
 %do_decl_kb_shared_1(M,F,A,PI):- if_defined(mpred_database_term(F,A,_),F = ~),dmsg(trace_or_throw(do_decl_kb_shared_1(M,F,A,PI))).
-do_decl_kb_shared_1(M,F,A,PI):- baseKB:'already_decl'(Other,M,F,A), Other \== (kb_shared), dmsg(warn(trace_or_throw(already_decl(Other,M,F,A,PI)))),!.
+do_decl_kb_shared_1(M,F,A,PI):- lmcache:already_decl(Other,M,F,A), Other \== (kb_shared), dmsg(warn(trace_or_throw(already_decl(Other,M,F,A,PI)))),!.
 
 do_decl_kb_shared_1(M,F,A,PI):- \+ predicate_property(M:PI,imported_from(_)), predicate_property(M:PI,defined),!,do_decl_kb_shared_2(M,F,A,PI).
 % not possible do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
-do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(R)),R\==M,!,
-   do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
 
-do_decl_kb_shared_1(M,F,A,PI):- current_predicate(F,R:PI),\+ predicate_property(R:PI,imported_from(_)),R\==M,!,
-   do_decl_kb_shared_2(R,F,A,PI),do_import(M,R,F,A).
+do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(R)),R\==M,!,
+   show_call(pfc(inherited_shared(R)),do_import(M,R,F,A)),
+   do_decl_kb_shared_2(R,F,A,PI),
+   nop(do_import(system,R,F,A)),!.
+
+do_decl_kb_shared_1(M,F,A,PI):- current_predicate(F,R:PI), 
+   \+ predicate_property(R:PI,inherited_from(_)),
+   R\==M,
+   dmsg(pfc(shared_found_peer(R,M:F/A))),
+   do_import(M,R,F,A),
+   do_decl_kb_shared_2(R,F,A,PI),
+   nop(do_import(system,R,F,A)),!.
+
 do_decl_kb_shared_1(M,F,A,PI):- do_decl_kb_shared_2(M,F,A,PI),!.
   
 
-do_decl_kb_shared_2(M,F,A,PI):- 
-   nop(dmsg(('do_decl_kb_shared'(M,F,A)))),
+do_decl_kb_shared_2(M,F,A,_PI):- 
+   nop(dmsg((do_decl_kb_shared(M,F,A)))),
  must_det_l((
-   maybe_define_if_not_static(M,PI),
-   M:export(M:F/A),
-   do_import(baseKB,M,F,A),
-   do_import(pfc_toplevel,M,F,A),   
-   do_import(pfc_mod,M,F,A),   
-   do_import(pfc_lib,M,F,A),   
-   do_import(mpred_type_isa,M,F,A),
+   make_as_dynamic(kb_shared(M:F/A),M,F,A),
+   % M:export(M:F/A),
+   % do_import(baseKB,M,F,A),
+   % do_import(pfc_toplevel,M,F,A),   
+   % do_import(pfc_mod,M,F,A),   
+   % do_import(pfc_lib,M,F,A),   
+   % do_import(mpred_type_isa,M,F,A),
 % TODO BEGIN comment these out!
-   do_import(system,M,F,A),   
-   do_import(user,M,F,A),
-   do_import(header_sane,M,F,A),   
-      
-   '$current_source_module'(SM),do_import(SM,M,F,A),   
-   '$current_typein_module'(TM),do_import(TM,M,F,A),
+   %do_import(system,M,F,A),   
+   %do_import(user,M,F,A),
+   %do_import(header_sane,M,F,A),      
+   %'$current_source_module'(SM),do_import(SM,M,F,A),   
+   %'$current_typein_module'(TM),do_import(TM,M,F,A),
 % TODO END comment these out!
    decl_wrapped(M,F,A,ereq))).
 
@@ -697,9 +726,9 @@ do_import(TM,M,F,A):-
    must((TM:import(M:F/A),TM:export(TM:F/A))),!.
    % must((TM:module_transparent(M:F/A))). % in case this has clauses th
 
-decl_wrapped(_M,F,A,How):-
+decl_wrapped(M,F,A,How):-
  assert_if_new(rdf_rewrite:arity(F,A)), % TODO puts this in Local Mt
- assert_if_new(baseKB:safe_wrap(F,A,How)).
+ assert_if_new(baseKB:safe_wrap(M,F,A,How)).
  % once((M==baseKB->true;assert_if_new(baseKB:predicateConventionMt(F,M)))).
 
 % Skip Virtualizing
@@ -727,53 +756,104 @@ same_terms(A,M:B):-atom(M),!,same_terms(A,B).
 
 
 % kb_local(SPEC):- !,kb_shared(SPEC),!.
-kb_local(SPEC):- decl_as('decl_kb_local',SPEC),!.
+kb_local(SPEC):- decl_as(decl_kb_local,SPEC),!.
 
-'decl_kb_local'(M:'==>'/A):- A==1, !, dmsg(skip('decl_kb_local'(M:'==>'/A))).
+decl_kb_local(M:'==>'/A):- A==1, !, dmsg(skip(decl_kb_local(M:'==>'/A))).
 
-'decl_kb_local'(M:F/A):- check_mfa(M,F,A),!,
-  (baseKB:'already_decl'(kb_local,M,F,A)->true;
-    (asserta(baseKB:'already_decl'(kb_local,M,F,A)),'do_decl_kb_local'(M,F,A))),!.
-'decl_kb_local'(MFA):- trace_or_throw(bad_kb_local(MFA)).
+decl_kb_local(M:F/A):- check_mfa(M,F,A),!,
+  (lmcache:already_decl(kb_local,M,F,A)->true;
+    (asserta(lmcache:already_decl(kb_local,M,F,A)),do_decl_kb_local(M,F,A))),!.
+decl_kb_local(MFA):- trace_or_throw(bad_kb_local(MFA)).
 
-'do_decl_kb_local'(M,prologSingleValued,0):- trace_or_throw('do_decl_kb_local'(M,prologSingleValued,0)).
+do_decl_kb_local(M,prologSingleValued,0):- trace_or_throw(do_decl_kb_local(M,prologSingleValued,0)).
 
-'do_decl_kb_local'(M,F,A):-functor(PI,F,A),do_decl_kb_local_1(M,F,A,PI).
+do_decl_kb_local(M,F,A):-functor(PI,F,A),do_decl_kb_local_1(M,F,A,PI),!.
 
-do_decl_kb_local_1(M,F,A,_):- baseKB:'already_decl'(kb_shared,M,F,A),!. % ,dmsg(baseKB:'already_decl'(kb_shared,M,F,A)).
+do_decl_kb_local_1(M,F,A,_):- lmcache:already_decl(Other,M,F,A),Other\=(kb_local),!. % ,dmsg(lmcache:already_decl(kb_shared,M,F,A)).
 
-do_decl_kb_local_1(M,F,A,PI):- 
-  \+ predicate_property(M:PI,inherited_from(_)), 
-  predicate_property(M:PI,defined),!,
-  nop((show_call(pfc(rediscovered),do_decl_kb_local_2(M,F,A,PI)))).
-% not possible do_decl_kb_local_1(M,F,A,PI):- predicate_property(M:PI,inherited_from(M)),!,do_decl_kb_local_2(M,F,A,PI).
-do_decl_kb_local_1(M,F,A,PI):- 
+do_decl_kb_local_1(M,F,A,PI):-
   predicate_property(M:PI,inherited_from(R)),R\==M,!,
   do_decl_kb_local_2(R,F,A,PI),
-  show_call(pfc(inherited),do_import(M,R,F,A)).
+  show_call(pfc(inherited_local(R)),do_import(M,R,F,A)).
 
-do_decl_kb_local_1(M,F,A,PI):- current_predicate(F,R:PI), 
+do_decl_kb_local_1(M,F,A,PI):- 
+  % \+ predicate_property(M:PI,inherited_from(_)), 
+  predicate_property(M:PI,defined),
+  do_decl_kb_local_2(M,F,A,PI).
+% not possible do_decl_kb_local_1(M,F,A,PI):- predicate_property(M:PI,inherited_from(M)),!,do_decl_kb_local_2(M,F,A,PI).
+
+do_decl_kb_local_1(M,F,A,PI):- 
+   findall(R,(current_predicate(F,R:PI), 
    \+ predicate_property(R:PI,inherited_from(_)),
-   R\==M,!,
-   show_call(pfc(found_peer),do_import(M,R,F,A)).
+   R\==M),Rs),Rs\==[],
+   dmsg(pfc(local_found_peer(Rs,M:F/A))),fail,
+   !,
+   show_call(pfc(found_peer(R)),do_import(M,R,F,A)).
 
 do_decl_kb_local_1(M,F,A,PI):- do_decl_kb_local_2(M,F,A,PI),!.
   
 
-do_decl_kb_local_2(M,F,A,PI):- 
-   nop(dmsg(('do_decl_kb_local'(M,F,A)))),
- must_det_l((  
-  (is_static_predicate(M:PI) -> true ; (predicate_property(M:PI,dynamic) -> true ; must(M:dynamic(M:PI)))),
-  functor_h(PI,F,A),
-  asserta_if_new(baseKB:safe_wrap(F,A,ereq)),
-  M:multifile(M:F/A),
-  M:public(M:F/A),
-  %   on_f_throw( (M:F/A)\== (baseKB:loaded_external_kbs/1)),
-  M:discontiguous(M:F/A),
-  M:module_transparent(M:F/A),
-   decl_wrapped(M,F,A,ereq))).
+do_decl_kb_local_2(M,F,A,_PI):- 
+ nop(dmsg((do_decl_kb_local(M,F,A)))),
+ must_det_l((
+  make_as_dynamic(kb_local(M:F/A),M,F,A),
+  create_predicate_inheritance_0(M,F,A),
+  decl_wrapped(M,F,A,ereq))).
+
+
+make_as_dynamic(M,F,A):- make_as_dynamic(make_as_dynamic,M,F,A).
+make_as_dynamic(Reason,M,F,A):-
+ must_det_l((
+   functor(PI,F,A),
+   M:multifile(M:F/A),
+   M:discontiguous(M:F/A),
+   M:module_transparent(M:F/A),
+   (is_static_predicate(M:PI) -> true ; (predicate_property(M:PI,dynamic) -> true ; must(M:dynamic(M:PI)))),   
+   public(M:F/A),
+   nop(on_f_throw( (M:F/A)\== (baseKB:loaded_external_kbs/1))),
+   nop(assertz_if_new(( M:PI :- (fail,infoF(createdFor(Reason)))))))).
+
 
 do_inherit(_SM,_M,_F,_A).
+
+%% create_predicate_inheritance_0(+ChildDefMt,+F,+A) is semidet.
+%
+% Ensure ihherit_above/2 stub is present in ChildDefMt.
+%
+
+create_predicate_inheritance(CallerMt,F,A):-
+  create_predicate_inheritance_0(CallerMt,F,A),!.
+create_predicate_inheritance_0(Nonvar,F,A):- var(Nonvar)-> break ; (sanity(ground(create_predicate_inheritance_0(Nonvar,F,A))),fail).
+% TODO unsuspect the next line (nothing needs to see above baseKB)
+
+
+create_predicate_inheritance_0(baseKB,F,A):- !, make_as_dynamic(baseKB,F,A).
+/*
+create_predicate_inheritance_0(baseKB,F,A):- !,
+  make_as_dynamic(create_predicate_inheritance_0(baseKB,F,A),baseKB,F,A), 
+     ignore((( \+ (defaultAssertMt(CallerMt),CallerMt\==baseKB,create_predicate_inheritance_0(CallerMt,F,A) )))).
+*/
+
+create_predicate_inheritance_0(abox,F,A):-  
+       !, must(defaultAssertMt(CallerMt)),
+       sanity(CallerMt\=abox),!,
+       create_predicate_inheritance_0(CallerMt,F,A).
+
+create_predicate_inheritance_0(CallerMt,F,A):- clause_b(mtProlog(CallerMt)),
+   sanity(\+ clause_b(mtHybrid(CallerMt))),!,
+   wdmsg(warn(create_predicate_istAbove_mtProlog(CallerMt,F,A))),dtrace.
+
+create_predicate_inheritance_0(CallerMt,F,A):-
+   make_as_dynamic(create_predicate_inheritance_0(CallerMt,F,A),CallerMt,F,A),
+   functor(Goal,F,A),
+   CallerMt:import(ihherit_above/2),
+   CallerMt:assert_if_new(( CallerMt:Goal :- ihherit_above(CallerMt,Goal))).
+
+:- module_transparent(ihherit_above/2).
+:- export(ihherit_above/2).
+ihherit_above(Mt,Query):- \+ context_module(baseKB), Query\=ihherit_above(_,_),Query\=genlMt(Mt,_),
+   (clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true)),
+   MtAbove:Query.
 
 
 
@@ -813,5 +893,3 @@ system:goal_expansion(In,P,Out,PO):- callable(In), nonvar(P),
   PO=P.
 
 :- endif.
-
-
