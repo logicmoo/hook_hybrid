@@ -16,7 +16,7 @@
 :- module(virtualize_source,
           [
 %ereq/1,dbreq/1,
-check_mfa/3,
+check_mfa/4,
 clause_b/1,
 cnas/3,
 create_predicate_inheritance/3,
@@ -25,11 +25,12 @@ current_assertion_module/1,
 decl_as/2,
 decl_kb_local/1,
 decl_kb_shared/1,
+do_import/4,
 ignore_mpreds_in_file/0,
 ignore_mpreds_in_file/1,
-(kb_global)/1,
-(kb_local)/1,
 (kb_shared)/1,
+(kb_local)/1,
+(kb_global)/1,
 make_as_dynamic/4,
 predicate_m_f_a_decl/4,
 nb_current_or_nil/2,
@@ -65,7 +66,7 @@ warn_if_static/2
 
 :- module_transparent((
 %ereq/1,dbreq/1,
-check_mfa/3,
+check_mfa/4,
 clause_b/1,
 cnas/3,
 create_predicate_inheritance/3,
@@ -74,11 +75,12 @@ current_assertion_module/1,
 decl_as/2,
 decl_kb_local/1,
 decl_kb_shared/1,
+do_import/4,
 ignore_mpreds_in_file/0,
 ignore_mpreds_in_file/1,
-(kb_global)/1,
-(kb_local)/1,
 (kb_shared)/1,
+(kb_local)/1,
+(kb_global)/1,
 make_as_dynamic/4,
 nb_current_or_nil/2,
 safe_virtualize/3,
@@ -645,16 +647,17 @@ decl_as_rev(MFA,[G1|G2]):-!,decl_as_rev(MFA,G1),!,decl_as_rev(MFA,G2),!.
 decl_as_rev(MFA,M:(G1,G2)):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
 decl_as_rev(MFA,M:[G1]):-!,decl_as_rev(MFA,M:G1),!.
 decl_as_rev(MFA,M:[G1|G2]):-!,decl_as_rev(MFA,M:G1),!,decl_as_rev(MFA,M:G2),!.
-decl_as_rev(M:F/A,OM:Pred):- check_mfa(OM,F,A),
+decl_as_rev(M:F/A,OM:Pred):- check_mfa(OM:Pred,OM,F,A),
   must(call(OM:Pred,M:F/A)),!.
-decl_as_rev(M:F/A,Pred):- check_mfa(M,F,A),
+decl_as_rev(M:F/A,Pred):- check_mfa(Pred,M,F,A),
   must(call(M:Pred,M:F/A)).
 
-check_mfa(M,F,A):-sanity(atom(F)),sanity(integer(A)),sanity(current_module(M)).
+% check_mfa(Why,M, genlMt, 2):- baseKB\=M,dumpST,dmsg(check_mfa(Why,M, genlMt, 2)),!,break.
+check_mfa(_Why,M,F,A):-sanity(atom(F)),sanity(integer(A)),sanity(current_module(M)).
 
 
 
-kb_shared(SPEC):- decl_as(decl_kb_shared,SPEC),!.
+kb_shared(SPEC):- decl_as(decl_kb_local,SPEC),!.
 
 kb_global(SPEC):- decl_as(decl_kb_shared,SPEC),!.
 
@@ -665,9 +668,9 @@ predicate_m_f_a_decl(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 % TODO comment this out!
 decl_kb_shared(M:'==>'/A):- !, dmsg(skip(decl_kb_shared(M:'==>'/A))).
 
-decl_kb_shared(M:F/A):- check_mfa(M,F,A),!,
-  (lmcache:already_decl(kb_shared,M,F,A)->true;
-  (asserta(lmcache:already_decl(kb_shared,M,F,A)),do_decl_kb_shared(M,F,A))),!.
+decl_kb_shared(M:F/A):- check_mfa(kb_global,M,F,A),!,
+  (lmcache:already_decl(kb_global,M,F,A)->true;
+  (asserta(lmcache:already_decl(kb_global,M,F,A)),do_decl_kb_shared(M,F,A))),!.
 decl_kb_shared(MFA):- trace_or_throw(bad_kb_shared(MFA)).
 
 do_decl_kb_shared(M,prologSingleValued,0):- trace_or_throw(do_decl_kb_shared(M,prologSingleValued,0)).
@@ -676,7 +679,7 @@ do_decl_kb_shared(M,F,A):-functor(PI,F,A),do_decl_kb_shared_1(M,F,A,PI).
 
 %do_decl_kb_shared_1(M,F,A,PI):- M\=baseKB,M\=elmt,M\=rdf_rewrite,\+ clause(baseKB:using_pfc(user,M,pfc_mod),true),dumpST,break,(trace_or_throw(do_decl_kb_shared_m(M,F,A,PI))).
 %do_decl_kb_shared_1(M,F,A,PI):- if_defined(mpred_database_term(F,A,_),F = ~),dmsg(trace_or_throw(do_decl_kb_shared_1(M,F,A,PI))).
-do_decl_kb_shared_1(M,F,A,PI):- lmcache:already_decl(Other,M,F,A), Other \== (kb_shared), dmsg(warn(trace_or_throw(already_decl(Other,M,F,A,PI)))),!.
+do_decl_kb_shared_1(M,F,A,PI):- lmcache:already_decl(Other,M,F,A), Other \== (kb_global), dmsg(warn(trace_or_throw(already_decl(Other,M,F,A,PI)))),!.
 
 do_decl_kb_shared_1(M,F,A,PI):- \+ predicate_property(M:PI,imported_from(_)), predicate_property(M:PI,defined),!,do_decl_kb_shared_2(M,F,A,PI).
 % not possible do_decl_kb_shared_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_shared_2(M,F,A,PI).
@@ -700,16 +703,16 @@ do_decl_kb_shared_1(M,F,A,PI):- do_decl_kb_shared_2(M,F,A,PI),!.
 do_decl_kb_shared_2(M,F,A,_PI):- 
    nop(dmsg((do_decl_kb_shared(M,F,A)))),
  must_det_l((
-   make_as_dynamic(kb_shared(M:F/A),M,F,A),
-   % M:export(M:F/A),
-   % do_import(baseKB,M,F,A),
-   % do_import(pfc_toplevel,M,F,A),   
-   % do_import(pfc_mod,M,F,A),   
-   % do_import(pfc_lib,M,F,A),   
-   % do_import(mpred_type_isa,M,F,A),
+   make_as_dynamic(kb_global(M:F/A),M,F,A),
+    M:export(M:F/A),
+    do_import(baseKB,M,F,A),
+    do_import(pfc_toplevel,M,F,A),   
+    do_import(pfc_mod,M,F,A),   
+    do_import(pfc_lib,M,F,A),   
+    do_import(mpred_type_isa,M,F,A),
 % TODO BEGIN comment these out!
-   %do_import(system,M,F,A),   
-   %do_import(user,M,F,A),
+   do_import(system,M,F,A),   
+   do_import(user,M,F,A),
    %do_import(header_sane,M,F,A),      
    %'$current_source_module'(SM),do_import(SM,M,F,A),   
    %'$current_typein_module'(TM),do_import(TM,M,F,A),
@@ -755,12 +758,15 @@ same_terms(M:A,B):-atom(M),!,same_terms(A,B).
 same_terms(A,M:B):-atom(M),!,same_terms(A,B).
 
 
-% kb_local(SPEC):- !,kb_shared(SPEC),!.
+% kb_local(SPEC):- !,kb_global(SPEC),!.
+
+
+kb_local(R:F/A):- lmcache:already_decl(kb_global,M,F,A),!,do_import(M,R,F,A).
 kb_local(SPEC):- decl_as(decl_kb_local,SPEC),!.
 
-decl_kb_local(M:'==>'/A):- A==1, !, dmsg(skip(decl_kb_local(M:'==>'/A))).
+decl_kb_local(M:'==>'/A):- A==1, !, nop(dmsg(skip(decl_kb_local(M:'==>'/A)))).
 
-decl_kb_local(M:F/A):- check_mfa(M,F,A),!,
+decl_kb_local(M:F/A):- check_mfa(kb_local,M,F,A),!,
   (lmcache:already_decl(kb_local,M,F,A)->true;
     (asserta(lmcache:already_decl(kb_local,M,F,A)),do_decl_kb_local(M,F,A))),!.
 decl_kb_local(MFA):- trace_or_throw(bad_kb_local(MFA)).
@@ -769,7 +775,7 @@ do_decl_kb_local(M,prologSingleValued,0):- trace_or_throw(do_decl_kb_local(M,pro
 
 do_decl_kb_local(M,F,A):-functor(PI,F,A),do_decl_kb_local_1(M,F,A,PI),!.
 
-do_decl_kb_local_1(M,F,A,_):- lmcache:already_decl(Other,M,F,A),Other\=(kb_local),!. % ,dmsg(lmcache:already_decl(kb_shared,M,F,A)).
+do_decl_kb_local_1(M,F,A,_):- lmcache:already_decl(Other,M,F,A),Other\=(kb_local),!. % ,dmsg(lmcache:already_decl(kb_global,M,F,A)).
 
 do_decl_kb_local_1(M,F,A,PI):-
   predicate_property(M:PI,inherited_from(R)),R\==M,!,
@@ -782,10 +788,10 @@ do_decl_kb_local_1(M,F,A,PI):-
   do_decl_kb_local_2(M,F,A,PI).
 % not possible do_decl_kb_local_1(M,F,A,PI):- predicate_property(M:PI,inherited_from(M)),!,do_decl_kb_local_2(M,F,A,PI).
 
-do_decl_kb_local_1(M,F,A,PI):- 
+do_decl_kb_local_1(M,F,A,PI):- fail,
    findall(R,(current_predicate(F,R:PI), 
    \+ predicate_property(R:PI,inherited_from(_)),
-   R\==M),Rs),Rs\==[],
+   R\==M),Rs),Rs\==[],Rs\==[baseKB],
    dmsg(pfc(local_found_peer(Rs,M:F/A))),fail,
    !,
    show_call(pfc(found_peer(R)),do_import(M,R,F,A)).
@@ -839,22 +845,40 @@ create_predicate_inheritance_0(abox,F,A):-
        sanity(CallerMt\=abox),!,
        create_predicate_inheritance_0(CallerMt,F,A).
 
-create_predicate_inheritance_0(CallerMt,F,A):- clause_b(mtProlog(CallerMt)),
+create_predicate_inheritance_0(CallerMt,F,A):- fail, clause_b(mtProlog(CallerMt)),
    sanity(\+ clause_b(mtHybrid(CallerMt))),!,
    wdmsg(warn(create_predicate_istAbove_mtProlog(CallerMt,F,A))),dtrace.
+
+create_predicate_inheritance_0(CallerMt,F,A):- 
+  lmcache:already_decl(kb_global,M,F,A),do_import(CallerMt,M,F,A),!.
 
 create_predicate_inheritance_0(CallerMt,F,A):-
    make_as_dynamic(create_predicate_inheritance_0(CallerMt,F,A),CallerMt,F,A),
    functor(Goal,F,A),
    CallerMt:import(ihherit_above/2),
+   CallerMt:import(do_ihherit_above/2),
    CallerMt:assert_if_new(( CallerMt:Goal :- ihherit_above(CallerMt,Goal))).
 
 :- module_transparent(ihherit_above/2).
 :- export(ihherit_above/2).
-ihherit_above(Mt,Query):- \+ context_module(baseKB), Query\=ihherit_above(_,_),Query\=genlMt(Mt,_),
-   (clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true)),
-   MtAbove:Query.
+ihherit_above(Mt,Query):- 
+   \+ context_module(baseKB), 
+   Query\=do_inherit_above(_,_),
+   do_inherit_above(Mt,Query).
 
+:- module_transparent(do_inherit_above/2).
+:- export(do_inherit_above/2).
+do_inherit_above(Mt,QueryIn):- predicate_property(QueryIn,number_of_clauses(N)),
+   Mt:nth_clause(QueryIn,N,Ref),clause(_,Body,Ref),
+   Body\=ihherit_above(Mt,QueryIn),
+   once((Mt:clause(QueryIn,ihherit_above(Mt,_),Kill),
+   erase(Kill),functor(QueryIn,F,A),functor(Query,F,A),
+   dmsg(moving(inherit_above(Mt,Query))),
+   Mt:assertz((Query:-ihherit_above(Mt,Query))))),fail.
+do_inherit_above(Mt,Query):- 
+  % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
+   clause(baseKB:genlMt(Mt,MtAbove),true),
+   MtAbove:Query.
 
 
 :- dynamic(lmconf:virtualize_source_file/1).
