@@ -824,7 +824,7 @@ do_inherit(_SM,_M,_F,_A).
 
 %% create_predicate_inheritance_0(+ChildDefMt,+F,+A) is semidet.
 %
-% Ensure ihherit_above/2 stub is present in ChildDefMt.
+% Ensure inherit_above/2 stub is present in ChildDefMt.
 %
 
 create_predicate_inheritance(CallerMt,F,A):-
@@ -855,13 +855,13 @@ create_predicate_inheritance_0(CallerMt,F,A):-
 create_predicate_inheritance_0(CallerMt,F,A):-
    make_as_dynamic(create_predicate_inheritance_0(CallerMt,F,A),CallerMt,F,A),
    functor(Goal,F,A),
-   CallerMt:import(ihherit_above/2),
+   CallerMt:import(inherit_above/2),
    CallerMt:import(do_ihherit_above/2),
-   CallerMt:assert_if_new(( CallerMt:Goal :- ihherit_above(CallerMt,Goal))).
+   CallerMt:assert_if_new(( CallerMt:Goal :- inherit_above(CallerMt,Goal))).
 
-:- module_transparent(ihherit_above/2).
-:- export(ihherit_above/2).
-ihherit_above(Mt,Query):- 
+:- module_transparent(inherit_above/2).
+:- export(inherit_above/2).
+inherit_above(Mt,Query):- 
    \+ context_module(baseKB), 
    Query\=do_inherit_above(_,_),
    do_inherit_above(Mt,Query).
@@ -870,11 +870,11 @@ ihherit_above(Mt,Query):-
 :- export(do_inherit_above/2).
 do_inherit_above(Mt,QueryIn):- predicate_property(QueryIn,number_of_clauses(N)),
    Mt:nth_clause(QueryIn,N,Ref),clause(_,Body,Ref),
-   Body\=ihherit_above(Mt,QueryIn),
-   once((Mt:clause(QueryIn,ihherit_above(Mt,_),Kill),
+   Body\=inherit_above(Mt,QueryIn),
+   once((Mt:clause(QueryIn,inherit_above(Mt,_),Kill),
    erase(Kill),functor(QueryIn,F,A),functor(Query,F,A),
    dmsg(moving(inherit_above(Mt,Query))),
-   Mt:assertz((Query:-ihherit_above(Mt,Query))))),fail.
+   Mt:assertz((Query:-inherit_above(Mt,Query))))),fail.
 do_inherit_above(Mt,Query):- 
   % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
    clause(baseKB:genlMt(Mt,MtAbove),true),
