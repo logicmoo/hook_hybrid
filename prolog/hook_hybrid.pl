@@ -61,6 +61,7 @@
             defined_predicate/1,
             m_m_fa_to_m_p_fa/4,
             m_fa_to_m_p_fa/2,
+            warn_if_static/2,
             with_pfa_single/4,
             with_pfa_group/4,
             with_mfa_of/5,
@@ -820,6 +821,17 @@ with_pred_head(Pred,F):- F\=(_:_),!,prolog_load_context(module,M),!,call(Pred,M:
 with_pred_head(Pred,F):- call(Pred,F). 
 
 is_static_predicate(F):- with_pred_head(is_static_predicate0,F).
+
+
+
+warn_if_static(F,A):- 
+ ignore((F\={},
+  functor(Goal,F,A),
+  is_static_predicate(F/A),
+  listing(Goal),
+  trace_or_throw(warn(pfcPosTrigger,Goal,static)))).
+
+
 
 is_static_predicate0(M:F):-atom(F),predicate_property(M:F,static),!,predicate_property(F,number_of_clauses(_)),\+ predicate_property(F,dynamic).
 is_static_predicate0(FA):- predicate_property(FA,dynamic),!,fail.

@@ -73,6 +73,8 @@ uses_predicate(_,_, (:), _, error) :- !. % ,dumpST_dbreak.
 uses_predicate(_,_, '[|]', _, error) :- !,dumpST_dbreak.
 % uses_predicate(_,_, '>>',  4, error) :- !,dumpST_dbreak.
 
+uses_predicate(_,M, inherit_above,_,error):- M:use_module(library(virtualize_source)).
+
 % makes sure we ignore calls to predicate_property/2  (or thus '$define_predicate'/1)
 % uses_predicate(_,M,F,A,R):- prolog_current_frame(FR), functor(P,F,A),(prolog_frame_attribute(FR,parent_goal,predicate_property(M:P,_))),!,R=error.
 uses_predicate(_,Module,Name,Arity,Action) :-

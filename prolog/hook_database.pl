@@ -720,6 +720,34 @@ dbreq(C):- ereq(C).
 :-meta_predicate(clause_true(?)).
 
 
+predicate_property_safe(P,PP):- notrace(predicate_property(P,PP)).
+
+%% clause_b( ?C) is semidet.
+%
+% Clause User Microtheory.
+%
+
+
+clause_b(M:Goal):- !, M:clause(Goal,B),M:call(B).
+clause_b(Goal):- (clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal).
+
+% lookup_u/cheaply_u/call_u/clause_b
+%clause_b(Goal):-  baseKB:call(call,Goal).
+%clause_b(M:Goal):- !, (clause(M:Goal,true);clause(Goal,true)).
+
+
+%clause_b(Goal):-  baseKB:clause(Goal,B)*->call(B);clause_b0(Goal).
+%clause_b(Goal):-  baseKB:clause(Goal,true)*->true;clause_b0(Goal).
+
+% clause_b0(Goal):- if_defined(to_was_isa(clause_b,Goal,P0),fail),!,Goal\=P0,baseKB:clause(P0,true).
+
+%clause_b(M:C):-!,clause(M:C,true).
+%clause_b(C):- call_u(clause(C,true)).
+%clause_b(C):-!,clause(_:C,true).
+%clause_b(Goal):-  Goal=..[C,PART],!,baseKB:t(C,PART).
+%clause_b(Goal):-  current_predicate(_,baseKB:Goal),!,loop_check(baseKB:Goal).
+% clause_b(Goal):- clause(baseKB:Goal,Body),(Body==true->true;call_u(Body)).
+
 %= 	 	 
 
 %% clause_true( ?G) is semidet.
