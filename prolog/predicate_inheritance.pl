@@ -111,7 +111,10 @@ system:inherit_above(Mt,Query):-
 
 never_move(spft,_).
 never_move(mpred_prop,_).
+never_move(meta_argtypes,_).
 never_move(pt,_).
+never_move(bt,_).
+never_move(nt,_).
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
 system:do_inherit_above(Mt,QueryIn):- 
