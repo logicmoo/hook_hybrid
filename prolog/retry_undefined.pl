@@ -64,13 +64,14 @@ has_parent_goal(F,G):-prolog_frame_attribute(F,goal, G);(prolog_frame_attribute(
 
 
 
+
 uses_predicate(_,CallerMt,'$pldoc',4,retry):- make_as_dynamic(uses_predicate,CallerMt,'$pldoc',4),!.
 uses_predicate(User, User, module, 2, error):-!.
 uses_predicate(_,_, (:-), _, error) :- !,dumpST_dbreak.
 uses_predicate(_,_, (/), _, error) :- !. % dumpST_dbreak.
 uses_predicate(_,_, (//), _, error) :- !. % dumpST_dbreak.
 uses_predicate(_,_, (:), _, error) :- !. % ,dumpST_dbreak.
-uses_predicate(_,_, '[|]', _, error) :- !,dumpST_dbreak.
+% uses_predicate(_,_, '[|]', _, error) :- !,dumpST_dbreak.
 % uses_predicate(_,_, '>>',  4, error) :- !,dumpST_dbreak.
 
 uses_predicate(_,M, inherit_above,_,error):- M:use_module(library(virtualize_source)).
@@ -89,46 +90,27 @@ uses_predicate(_,_,_,_,error):-
    (fail,is_parent_goal(F,'assert_u'(_)));
    has_parent_goal(F,'$syspreds':property_predicate(_,_))),!.
 
-uses_predicate(BaseKB,System, F,A,R):-  System\==BaseKB, call_u(mtHybrid(BaseKB)),\+ call_u(mtHybrid(System)),!,dumpST,
-   must(uses_predicate(System,BaseKB,F,A,R)),!.
 
+uses_predicate(M, Var, F, A, Reply):- var(Var),nonvar(M),!,uses_predicate(M, M, F, A, Reply).
 
-
-/*
-uses_predicate(CallerMt,CallerMt,predicateConventionMt,2,retry):-
-  create_predicate_inheritance(CallerMt,predicateConventionMt,2),!.
-
-uses_predicate(_CallerMt,baseKB,predicateConventionMt,2,retry):-
-  create_predicate_inheritance(baseKB,predicateConventionMt,2).
-
-
-uses_predicate(BaseKB,System, F,A,R):- trace,  System\==BaseKB, call_u(mtHybrid(BaseKB)),\+ call_u(mtHybrid(System)),
-   loop_check_term(must(uses_predicate(System,BaseKB,F,A,R)),
-                   term(uses_predicate(System,BaseKB,F,A,R)),fail),!.
-
-uses_predicate(_CallerMt, baseKB, F, A,retry):-
-  create_predicate_inheritance(baseKB,F,A),
-   nop(system:import(baseKB:F/A)),!.
-
-uses_predicate(System, BaseKB, F,A, retry):- 
-   System\==BaseKB, call_u(mtHybrid(BaseKB)),
-   \+ call_u(mtHybrid(System)),!,
-   create_predicate_inheritance(BaseKB,F,A),
-    nop(system:import(BaseKB:F/A)),!.
-
-*/
 % keeps from calling this more than once
 uses_predicate(SM,M,F,A,_Error):- 
-  (lmcache:tried_to_retry_undefined(SM,M,F,A)-> (wdmsg(re_used_predicate(SM,M,F,A)),fail) ;
-  (wdmsg(uses_predicate(SM,CallerMt,F,A)),assert(lmcache:tried_to_retry_undefined(SM,CallerMt,F,A)))),
+  (lmcache:tried_to_retry_undefined(SM,M,F,A)-> 
+    (wdmsg(re_used_predicate(SM,M,F,A)),fail) ;
+    (wdmsg(uses_predicate(SM,M,F,A)),assert(lmcache:tried_to_retry_undefined(SM,M,F,A)))),
   fail.
 
 uses_predicate(_,System, _,_, error):- module_property(System,class(system)),!.
 uses_predicate(_,System, _,_, error):- module_property(System,class(library)),!.
 
 uses_predicate(System, M, F,A, retry):- 
+   uses_undefined_hook(M),
    create_predicate_inheritance(M,F,A),
-    nop(System:import(M:F/A)),!.
+   nop(System:import(M:F/A)),!.
+
+
+uses_predicate(BaseKB,System, F,A,R):-   System\==BaseKB, call_u(mtHybrid(BaseKB)),\+ call_u(mtHybrid(System)),!,dumpST,
+   must(uses_predicate(System,BaseKB,F,A,R)),!.
 
 
 uses_predicate(SM,CallerMt,F,A,R):- trace_or_throw(uses_predicate(SM,CallerMt,F,A,R)), break,
@@ -231,6 +213,7 @@ user:exception(undefined_predicate, M:F/A, Action):-
   (uses_undefined_hook(CM);uses_undefined_hook(M)),!,
   show_failure(pfc_define(mfa(CM)), must(CM:uses_predicate(M:F/A, Action))).
 
+user:exception(undefined_predicate, member/2, retry):- use_module(library(lists)),!.
 user:exception(undefined_predicate, F/A, Action):- 
   current_prolog_flag(retry_undefined,true),
   strip_module(F/A,M,F/A),

@@ -277,6 +277,11 @@ find_and_call(_,_,  G):-current_predicate(_,C:G),!,found_call(C,G).
 find_and_call(C,M,  G):-dtrace,C:on_x_debug(M:G).
 
 
+current_module_ordered0(M):- prolog_load_context(module,M).
+current_module_ordered0(M):- context_module(M).
+current_module_ordered0(M):- '$current_typein_module'(M).
+
+current_module_ordered(O):- current_module_ordered0(O).
 current_module_ordered(user).
 current_module_ordered(baseKB).
 current_module_ordered(X):-current_module(X).
@@ -770,6 +775,10 @@ clause_true_anywhere(G):- strip_module(G,M,S),!,
     system:clause(M2:S,B,Ref),
      (B==true->! ;
     (clause_property(Ref,module(M22));M22=M2),!,call(M22:B)).
+
+
+current_assertion_module(M):- if_defined(defaultAssertMt(M),M=baseKB).
+suggest_m(M):- (if_defined(defaultAssertMt(M),fail);current_module_ordered(M)),is_visible_module(M).
 
 
 :-export(retract_eq/1).

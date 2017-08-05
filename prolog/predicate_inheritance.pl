@@ -109,13 +109,18 @@ system:inherit_above(Mt,Query):-
    Query\=do_inherit_above(_,_),
    do_inherit_above(Mt,Query).
 
+never_move(spft,_).
+never_move(mpred_prop,_).
+never_move(pt,_).
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
-system:do_inherit_above(Mt,QueryIn):-   predicate_property(QueryIn,number_of_clauses(N)),
+system:do_inherit_above(Mt,QueryIn):- 
+   functor(QueryIn,F,A),\+ never_move(F,A),
+   predicate_property(QueryIn,number_of_clauses(N)),
    Mt:nth_clause(QueryIn,N,Ref),clause(_,Body,Ref),
    Body\=inherit_above(Mt,QueryIn),
    once((Mt:clause(QueryIn,inherit_above(Mt,_),Kill),
-   erase(Kill),functor(QueryIn,F,A),functor(Query,F,A),
+   erase(Kill),functor(Query,F,A),
    dmsg(moving(inherit_above(Mt,Query))),
    Mt:assertz((Query:-inherit_above(Mt,Query))))),fail.
 
@@ -206,9 +211,11 @@ check_mfa(_Why,M,F,A):-sanity(atom(F)),sanity(integer(A)),sanity(current_module(
 
 
 
+kb_shared(SPEC):- SPEC=(_:_), !, decl_as(decl_kb_local,SPEC), context_module(M),!,( \+ mtHybrid(M) -> M:import(SPEC); true).
 kb_shared(SPEC):- decl_as(decl_kb_local,SPEC),!.
 
-kb_global(SPEC):- decl_as(decl_kb_shared,SPEC),!.
+kb_global(SPEC):- SPEC=(_:_), !, decl_as(decl_kb_shared,SPEC),!,import(SPEC).
+kb_global(SPEC):- dumpST,break,decl_as(decl_kb_shared,SPEC),!,import(SPEC).
 
 :- multifile(lmcache:already_decl/4).
 :- dynamic(lmcache:already_decl/4).
