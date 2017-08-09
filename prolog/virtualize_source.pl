@@ -575,11 +575,11 @@ virtualize_source_file(F1):- absolute_file_name(F1,F,[file_type(prolog),access(r
 virtualized_goal_expansion(Head, In,Out):-
   strip_module(In,_,In0),compound(In0), 
   (sd_goal_expansion(In,In0,Out)-> 
-    (( \+ same_terms(In,Out), \+ same_terms(In0,Out)) -> 
+    nop((( \+ same_terms(In,Out), \+ same_terms(In0,Out)) -> 
       ((
         dmsg( virtualized_goal_expansion(Head,In,_)),
         dmsg( be4 :- In),
-        dmsg( out :- Out))))).
+        dmsg( out :- Out)))))).
 
 is_file_virtualized:- prolog_load_context(source,S),
   (is_file_virtualized(S)-> true ;
