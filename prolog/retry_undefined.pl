@@ -68,7 +68,7 @@ uses_predicate(_, _, ~, 1, error) :- !.
 
 uses_predicate(_,CallerMt,'$pldoc',4,retry):- make_as_dynamic(uses_predicate,CallerMt,'$pldoc',4),!.
 uses_predicate(User, User, module, 2, error):-!.
-uses_predicate(_,_, (:-), _, error) :- !,dumpST_dbreak.
+uses_predicate(_,_, (:-), _, error) :- !, fail. % dumpST_dbreak.
 uses_predicate(_,_, (/), _, error) :- !. % dumpST_dbreak.
 uses_predicate(_,_, (//), _, error) :- !. % dumpST_dbreak.
 uses_predicate(_,_, (:), _, error) :- !. % ,dumpST_dbreak.
