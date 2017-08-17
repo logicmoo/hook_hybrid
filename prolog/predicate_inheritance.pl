@@ -286,10 +286,16 @@ do_decl_kb_shared_2(M,F,A,_PI):-
 % kb_local(SPEC):- !,kb_global(SPEC),!.
 
 
+kb_local(M:F/A):- lmcache:already_decl(kb_global,R,F,A), 
+   dmsg(warn(kb_local(already_decl(kb_global,R->M,F,A)))),!.
 kb_local(R:F/A):- lmcache:already_decl(kb_global,M,F,A),!,do_import(M,R,F,A).
+
 kb_local(SPEC):- decl_as(decl_kb_local,SPEC),!.
 
 decl_kb_local(M:'==>'/A):- A==1, !, nop(dmsg(skip(decl_kb_local(M:'==>'/A)))).
+
+decl_kb_local(M:F/A):- lmcache:already_decl(kb_global,R,F,A), 
+   dmsg(warn(trace_or_throw(already_decl(kb_global,R->M,F,A)))),!.
 
 decl_kb_local(M:F/A):- check_mfa(kb_local,M,F,A),!,
   (lmcache:already_decl(kb_local,M,F,A)->true;
