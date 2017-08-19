@@ -540,7 +540,7 @@ could_safe_virtualize:-
 
      \+ clause_b(mtHybrid(M)),
      \+ ((current_prolog_flag(dialect_pfc,fwc); 
-       (source_location(F,_W),( atom_concat(_,'.pfc.pl',F);atom_concat(_,'.plmoo',F);atom_concat(_,'.pfc',F))))).
+       (source_location(F,_W),( atom_concat(_,'.pfc.pl',F);atom_concat(_,'.plmoo',F);atom_concat(_,'.clif',F);atom_concat(_,'.pfc',F))))).
 
 %virtualize_source(X,In,Out):- (ground(In);true;current_prolog_flag(unsafe_speedups,true)),!,virtualize_code(X,In,Out).
 %virtualize_source(X,In,Out):- ground(In),!,virtualize_code(X,In,Out).

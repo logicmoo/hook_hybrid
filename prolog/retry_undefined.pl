@@ -36,7 +36,9 @@ uses_undefined_hook/0,				uses_predicate/5,
 install_retry_undefined.
 uses_undefined_hook.
 
-:- create_prolog_flag(retry_undefined,default,[type(term),keep(true)]).
+:- current_prolog_flag(retry_undefined,Was)->asserta(was_prolog_flag(retry_undefined,Was));asserta(was_prolog_flag(retry_undefined,default)).
+
+:- create_prolog_flag(retry_undefined,false,[type(term),keep(false)]).
 
 
 dumpST_dbreak:- dumpST,break.
@@ -47,8 +49,6 @@ dumpST_dbreak:- dumpST,break.
 % hybrid_support (like spft/3) must be defined directly in every module and then aggregated thru genlMts (thus to baseKB)
 
 :- dynamic(lmcache:tried_to_retry_undefined/4).
-
-:- create_prolog_flag(retry_undefined,default,[type(term),keep(true)]).
 
 uses_predicate(M:F/A,R):- !, '$current_source_module'(SM), uses_predicate(SM,M,F,A,R).
 uses_predicate(F/A,R):- '$current_source_module'(SM),'context_module'(M),uses_predicate(SM,M,F,A,R).
@@ -110,7 +110,7 @@ uses_predicate(System, M, F,A, retry):-
    nop(System:import(M:F/A)),!.
 
 
-uses_predicate(BaseKB,System, F,A,R):-   System\==BaseKB, call_u(mtHybrid(BaseKB)),\+ call_u(mtHybrid(System)),!,dumpST,
+uses_predicate(BaseKB,System, F,A,R):-   System\==BaseKB, clause_b(mtHybrid(BaseKB)),\+ clause_b(mtHybrid(System)),!,dumpST,
    must(uses_predicate(System,BaseKB,F,A,R)),!.
 
 
@@ -119,7 +119,11 @@ uses_predicate(SM,CallerMt,F,A,R):- trace_or_throw(uses_predicate(SM,CallerMt,F,
     R=retry.
 
 
-
+:- if(\+ current_predicate(autoload_library_index/4)).
+in_autoload_library_index(F,A,_PredMt,File):- '$in_library'(F,A,File).
+:- else.
+in_autoload_library_index(F,A,PredMt,File):- autoload_library_index(F,A,PredMt,File).
+:- endif.
 
 :- meta_predicate with_no_retry_undefined(:).
 with_no_retry_undefined(Goal):- locally(set_prolog_flag(retry_undefined,false),
@@ -136,12 +140,11 @@ retry_undefined(lmcache,F,A):- volatile(lmcache:F/A),make_as_dynamic(retry_undef
 retry_undefined(t_l,F,A):- thread_local(t_l:F/A),!,make_as_dynamic(retry_undefined(t_l),t_l,F,A),!.
 
 % adult-like Mt
-retry_undefined(Mt, F, A):-  clause_b(mtCycLBroad(Mt)), baseKB_hybrid_support(F,A),
+retry_undefined(Mt, F, A):-  clause_b(mtCycLBroad(Mt)), clause_b(hybrid_support(F,A)),
    make_as_dynamic(mtCycLBroad(Mt),Mt,F,A).
 
 % child-like Mt
-retry_undefined(CallerMt,F,A):- baseKB_hybrid_support(F,A),
-   clause_b(mtGlobal(CallerMt)),
+retry_undefined(CallerMt,F,A):- clause_b(mtGlobal(CallerMt)), clause_b(hybrid_support(F,A)),
    % find_and_call(baseKB:mtGlobal(CallerMt)),
    create_predicate_inheritance(CallerMt,F,A).
 
@@ -152,12 +155,12 @@ retry_undefined(CallerMt,F,A):- current_predicate(system:F/A), current_module(M)
 
 % our autoloader hacks
 retry_undefined(CallerMt,F,A):-
-   autoload_library_index(F,A,_PredMt,File),
+   in_autoload_library_index(F,A,_PredMt,File),
    use_module(CallerMt:File),!.
 
 % Autoloads importing the entire other module
 retry_undefined(CallerMt,F,A):- fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,
-       autoload_library_index(F,A,PredMt,File),
+       in_autoload_library_index(F,A,PredMt,File),
        asserta(lmcache:how_registered_pred(PredMt:use_module(CallerMt:File),CallerMt,F,A)),
        use_module(system:File),!.
        % system:add_import_module(CallerMt,system,start).
@@ -172,18 +175,18 @@ retry_undefined(CallerMt,directory_file_path,3):- use_module(CallerMt:library(fi
 
 
 retry_undefined(CallerMt,F,A):- fail,
-       autoload_library_index(F,A,_,File),
+       in_autoload_library_index(F,A,_,File),
        load_files(CallerMt:File,[if(true),imports([F/A]),register(false),silent(false)]),!.
 
 % Autoloads importing the entire other module
 retry_undefined(CallerMt,F,A):- fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,
-       autoload_library_index(F,A,PredMt,File),
+       in_autoload_library_index(F,A,PredMt,File),
        asserta(lmcache:how_registered_pred(PredMt:use_module(CallerMt:File),CallerMt,F,A)),
        use_module(CallerMt:File),!.
 
 /*
 retry_undefined(CallerMt,F,A):-
-      autoload_library_index(F,A,PredMt,File),
+      in_autoload_library_index(F,A,PredMt,File),
       ((current_module(PredMt),current_predicate(PredMt:F/A))
        -> add_import_module(CallerMt,PredMt,start) ;
        (PredMt:ensure_loaded(PredMt:File),add_import_module(CallerMt,PredMt,start))),!.
@@ -197,7 +200,8 @@ retry_undefined(CallerMt,F,A):- fail,fail,fail,fail,fail,fail,fail,fail,fail,fai
 %retry_undefined(PredMt:debugm/2) % UNDO % :- add_import_module(PredMt,logicmoo_util_dmsg,start),!.
 
 %uses_undefined_hook(CM):- (clause_b(genlMt(CM,_));clause_b(mtHybrid(CM))).
-uses_undefined_hook(CM):- clause_b(genlMt(CM,_));is_pfc_module(CM).
+uses_undefined_hook(CM):- clause_b(genlMt(CM,_)),!.
+% uses_undefined_hook(CM):- is_pfc_module(CM),!.
 uses_undefined_hook(baseKB).
 uses_undefined_hook(user).
 :- fixup_exports.
