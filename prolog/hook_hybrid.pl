@@ -129,7 +129,7 @@
 %
 with_no_mpred_expansions(Goal):-
   locally(set_prolog_flag(subclause_expansion,false),
-    locally(set_prolog_flag(mpred_te,false),Goal)).
+    locally(pred_decl_kb_mfa_typeset_prolog_flag(mpred_te,false),Goal)).
 :- export(with_no_mpred_expansions/1).
 :- system:import(with_no_mpred_expansions/1).
 
