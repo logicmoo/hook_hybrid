@@ -236,7 +236,7 @@ predicate_m_f_a_decl(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
 pred_decl_kb_mfa_type(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
-rdf_rewrite:decl_kb_global(M,F,A);- predicate_inheritance:decl_kb_global(M,F,A).
+rdf_rewrite:decl_kb_global(M,F,A):- predicate_inheritance:decl_kb_global(M,F,A).
 
 %:- dynamic(rdf_rewrite:decl_kb_global/3).
 %:- multifile(rdf_rewrite:decl_kb_global/3).
