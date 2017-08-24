@@ -137,7 +137,19 @@ system:do_inherit_above(Mt,QueryIn):-
   % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
 system:do_inherit_above(Mt,Query):- 
    clause(baseKB:genlMt(Mt,MtAbove),true),
-   MtAbove:Query.
+   system:do_call_inherited(MtAbove,Query).
+
+:- module_transparent(system:do_call_inherited/2).
+:- export(system:do_call_inherited/2).
+system:do_call_inherited(MtAbove,Query):- 
+   \+ current_prolog_flag(retry_undefined,none),
+   \+ current_predicate(_,MtAbove:Query),
+   functor(Query,F,A) -> create_predicate_inheritance_0(MtAbove,F,A) -> fail.
+
+system:do_call_inherited(MtAbove,Query):- !, on_x_debug(MtAbove:Query).
+system:do_call_inherited(MtAbove,Query):- ireq(MtAbove:Query).
+  
+
 
 
 
