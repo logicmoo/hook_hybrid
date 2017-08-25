@@ -215,15 +215,18 @@ uses_undefined_hook(user).
 :- module_transparent(user:exception/3).
 :- dynamic(user:exception/3).
 
-user:exception(undefined_predicate, M:F/A, Action):- 
+user:exception(undefined_predicate, M:F/A, ActionO):- 
   \+ current_prolog_flag(retry_undefined, none),
   strip_module(F/A,CM,F/A),
   (uses_undefined_hook(CM);uses_undefined_hook(M)),!,
-  show_failure(pfc_define(mfa(CM)), must(CM:uses_predicate(M:F/A, Action))).
-user:exception(undefined_predicate, F/A, Action):- 
-  \+ current_prolog_flag(retry_undefined, none),
+  show_failure(pfc_define(mfa(CM)), must(CM:uses_predicate(M:F/A, Action))),
+  ((Action==retry, tracing) -> dbreak ; true),Action=ActionO.
+
+user:exception(undefined_predicate, F/A, ActionO):- 
+  \+ current_prolog_flag(retry_undefined, none),  
   strip_module(F/A,CM,F/A),
   uses_undefined_hook(CM),!,
-  show_failure(pfc_define(CM), must(CM:uses_predicate(CM:F/A, Action))).
+  show_failure(pfc_define(CM), must(CM:uses_predicate(CM:F/A, Action))),
+  ((Action==retry, tracing) -> dbreak ; true),Action=ActionO.
 
 

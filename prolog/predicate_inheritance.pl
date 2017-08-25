@@ -275,7 +275,7 @@ do_decl_kb_global_1(M,F,A,PI):- \+ predicate_property(M:PI,imported_from(_)), pr
 % not possible do_decl_kb_global_1(M,F,A,PI):- predicate_property(M:PI,imported_from(M)),!,do_decl_kb_global_2(M,F,A,PI).
 
 do_decl_kb_global_1(M,F,A,PI):- predicate_property(M:PI,imported_from(R)),R\==M,!,
-   show_call(pfc(inherited_shared(R)),do_import(M,R,F,A)),
+   show_failure(pfc(inherited_shared(R)),do_import(M,R,F,A)),
    do_decl_kb_global_2(R,F,A,PI),
    nop(do_import(system,R,F,A)),!.
 
