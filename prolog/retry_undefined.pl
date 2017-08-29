@@ -25,6 +25,10 @@
 				has_parent_goal/2
 ]).
 
+:- thread_local(was_prolog_flag/1).
+:- current_prolog_flag(retry_undefined,Was)->asserta(was_prolog_flag(retry_undefined,Was));asserta(was_prolog_flag(retry_undefined,none)).
+:- create_prolog_flag(retry_undefined, none,[type(term),keep(false)]).
+
 :- module_transparent((	uses_predicate/2,
 uses_undefined_hook/0,				uses_predicate/5,
 				retry_undefined/3,
@@ -38,10 +42,6 @@ uses_undefined_hook.
 
 :- use_module(library(hook_database)).
 
-
-:- current_prolog_flag(retry_undefined,Was)->asserta(was_prolog_flag(retry_undefined,Was));asserta(was_prolog_flag(retry_undefined,default)).
-
-:- create_prolog_flag(retry_undefined, none,[type(term),keep(false)]).
 
 
 dumpST_dbreak:- dumpST,break.
@@ -207,23 +207,24 @@ uses_undefined_hook(CM):- clause_b(genlMt(CM,_)),!.
 % uses_undefined_hook(CM):- is_pfc_module(CM),!.
 uses_undefined_hook(baseKB).
 uses_undefined_hook(user).
-:- fixup_exports.
 
-:- set_prolog_flag(retry_undefined, none).
+:- fixup_exports.
 
 :- multifile(user:exception/3).
 :- module_transparent(user:exception/3).
 :- dynamic(user:exception/3).
 
 user:exception(undefined_predicate, M:F/A, ActionO):- 
-  \+ current_prolog_flag(retry_undefined, none),
+  \+ current_prolog_flag(retry_undefined, none), current_prolog_flag(retry_undefined, Was),
+   Was \== false,
   strip_module(F/A,CM,F/A),
   (uses_undefined_hook(CM);uses_undefined_hook(M)),!,
   show_failure(pfc_define(mfa(CM)), must(CM:uses_predicate(M:F/A, Action))),
   ((Action==retry, tracing) -> dbreak ; true),Action=ActionO.
 
 user:exception(undefined_predicate, F/A, ActionO):- 
-  \+ current_prolog_flag(retry_undefined, none),  
+  \+ current_prolog_flag(retry_undefined, none), current_prolog_flag(retry_undefined, Was),
+   Was \== false,
   strip_module(F/A,CM,F/A),
   uses_undefined_hook(CM),!,
   show_failure(pfc_define(CM), must(CM:uses_predicate(CM:F/A, Action))),

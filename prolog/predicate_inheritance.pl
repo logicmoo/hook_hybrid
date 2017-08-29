@@ -18,7 +18,7 @@
 check_mfa/4,
 %skip_mfa/4,
 create_predicate_inheritance/3,
-create_predicate_inheritance_0/3,
+now_inherit_above/3,
 decl_as/2,
 decl_kb_global/3,
 
@@ -58,7 +58,7 @@ make_as_dynamic/4
 check_mfa/4, 
 %skip_mfa/4,
 create_predicate_inheritance/3,
-create_predicate_inheritance_0/3,
+now_inherit_above/3,
 decl_as/2,
 do_import/4,
 (kb_local)/1,
@@ -69,41 +69,46 @@ make_as_dynamic/4
 
 
 
-%% create_predicate_inheritance_0(+ChildDefMt,+F,+A) is semidet.
+%% create_predicate_inheritance(+ChildDefMt,+F,+A) is semidet.
 %
 % Ensure inherit_above/2 stub is present in ChildDefMt.
 %
+create_predicate_inheritance(CallerMt,F,A):- lmcache:already_decl(kb_global,M,F,A),!,CallerMt:import(M:F/A).
+%create_predicate_inheritance(_,F,A):- lmcache:already_decl(kb_shared,_,F,A),!.
+%create_predicate_inheritance(M,F,A):- show_success(lmcache:already_decl(kb_local,M,F,A)),!.
+%create_predicate_inheritance(M,F,A):- show_success(lmcache:already_decl(kb_shared,M,F,A)),!.
+create_predicate_inheritance(CallerMt,F,A):- now_inherit_above(CallerMt,F,A),!.
 
-create_predicate_inheritance(_,F,A):- lmcache:already_decl(kb_global,_,F,A),!.
-create_predicate_inheritance(_,F,A):- lmcache:already_decl(kb_local,_,F,A),!.
 
-create_predicate_inheritance(CallerMt,F,A):-
-  create_predicate_inheritance_0(CallerMt,F,A),!.
-create_predicate_inheritance_0(Nonvar,F,A):- var(Nonvar)-> break ; (sanity(ground(create_predicate_inheritance_0(Nonvar,F,A))),fail).
+
 % TODO unsuspect the next line (nothing needs to see above baseKB)
 
-
-create_predicate_inheritance_0(baseKB,F,A):- !, make_as_dynamic(baseKB,F,A).
+%% now_inherit_above(+ChildDefMt,+F,+A) is semidet.
+%
+% Ensure now_inherit_above/2 stub is present in ChildDefMt.
+%
+now_inherit_above(Nonvar,F,A):- var(Nonvar)-> break ; (sanity(ground(now_inheritance(Nonvar,F,A))),fail).
+now_inherit_above(baseKB,F,A):- !, make_as_dynamic(baseKB,F,A).
 /*
-create_predicate_inheritance_0(baseKB,F,A):- !,
-  make_as_dynamic(create_predicate_inheritance_0(baseKB,F,A),baseKB,F,A), 
-     ignore((( \+ (defaultAssertMt(CallerMt),CallerMt\==baseKB,create_predicate_inheritance_0(CallerMt,F,A) )))).
+now_inherit_above(baseKB,F,A):- !,
+  make_as_dynamic(now_inherit_above(baseKB,F,A),baseKB,F,A), 
+     ignore((( \+ (defaultAssertMt(CallerMt),CallerMt\==baseKB,now_inherit_above(CallerMt,F,A) )))).
 */
 
-create_predicate_inheritance_0(abox,F,A):-  
+now_inherit_above(abox,F,A):-  
        !, must(defaultAssertMt(CallerMt)),
        sanity(CallerMt\=abox),!,
-       create_predicate_inheritance_0(CallerMt,F,A).
+       now_inherit_above(CallerMt,F,A).
 
-create_predicate_inheritance_0(CallerMt,F,A):- fail, clause_b(mtProlog(CallerMt)),
+now_inherit_above(CallerMt,F,A):- fail, clause_b(mtProlog(CallerMt)),
    sanity(\+ clause_b(mtHybrid(CallerMt))),!,
    wdmsg(warn(create_predicate_istAbove_mtProlog(CallerMt,F,A))),dtrace.
 
-create_predicate_inheritance_0(CallerMt,F,A):- 
+now_inherit_above(CallerMt,F,A):- 
   lmcache:already_decl(kb_global,M,F,A),do_import(CallerMt,M,F,A),!.
 
-create_predicate_inheritance_0(CallerMt,F,A):-
-   make_as_dynamic(create_predicate_inheritance_0(CallerMt,F,A),CallerMt,F,A),
+now_inherit_above(CallerMt,F,A):-
+   make_as_dynamic(now_inherit_above(CallerMt,F,A),CallerMt,F,A),
    functor(Goal,F,A),
    CallerMt:import(inherit_above/2),
    CallerMt:import(do_ihherit_above/2),
@@ -136,15 +141,15 @@ system:do_inherit_above(Mt,QueryIn):-
 
   % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
 system:do_inherit_above(Mt,Query):- 
-   clause(baseKB:genlMt(Mt,MtAbove),true),
-   system:do_call_inherited(MtAbove,Query).
+   clause(genlMt(Mt,MtAbove),true),
+   do_call_inherited(MtAbove,Query).
 
 :- module_transparent(system:do_call_inherited/2).
 :- export(system:do_call_inherited/2).
 system:do_call_inherited(MtAbove,Query):- 
    \+ current_prolog_flag(retry_undefined,none),
    \+ current_predicate(_,MtAbove:Query),
-   functor(Query,F,A) -> create_predicate_inheritance_0(MtAbove,F,A) -> fail.
+   functor(Query,F,A) -> create_predicate_inheritance(MtAbove,F,A) -> fail.
 
 system:do_call_inherited(MtAbove,Query):- !, on_x_debug(MtAbove:Query).
 system:do_call_inherited(MtAbove,Query):- ireq(MtAbove:Query).
@@ -371,10 +376,10 @@ do_decl_kb_type_1(Type,M,F,A,PI):- do_decl_kb_type_2(Type,M,F,A,PI),!.
   
 
 do_decl_kb_type_2(Type,M,F,A,_PI):- 
- nop(dmsg((do_decl_kb_type(Type,Type,M,F,A)))),
+ nop(dmsg((do_decl_kb_type(Type,M,F,A)))),
  must_det_l((
   make_as_dynamic(kb_local(M:F/A),M,F,A),
-  create_predicate_inheritance_0(M,F,A),
+  create_predicate_inheritance(M,F,A),
   decl_wrapped(M,F,A,ereq))).
 
 
