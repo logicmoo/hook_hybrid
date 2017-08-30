@@ -654,3 +654,4 @@ system:goal_expansion(In,P,Out,PO):-
   PO=P.
 
 :- endif.
+

@@ -14,11 +14,11 @@
 
 % File: /opt/PrologMUD/pack/logicmoo_base/prolog/logicmoo/util/logicmoo_util_structs.pl
 :- module(retry_undefined,
-[	uses_predicate/2,
+[	% uses_predicate/3,
                 uses_undefined_hook/0,
                 install_retry_undefined/0,
-				uses_predicate/5,
-				retry_undefined/3,
+				% uses_predicate/5,
+			   %     retry_undefined/3,
 				is_parent_goal/1,
 				is_parent_goal/2,
 				has_parent_goal/1,
@@ -42,6 +42,9 @@ uses_undefined_hook.
 
 :- use_module(library(hook_database)).
 
+ :- meta_predicate uses_predicate_new(*,*,*,*,*,*).
+ :- meta_predicate uses_predicate(*,*,*,*,*,*).
+
 
 
 dumpST_dbreak:- dumpST,break.
@@ -53,10 +56,18 @@ dumpST_dbreak:- dumpST,break.
 
 :- dynamic(lmcache:tried_to_retry_undefined/4).
 
-uses_predicate(M:F/A,R):- !, '$current_source_module'(SM), uses_predicate(SM,M,F,A,R).
-uses_predicate(F/A,R):- '$current_source_module'(SM),'context_module'(M),uses_predicate(SM,M,F,A,R).
+%uses_predicate(_DEF,M:F/A,R):- !, '$current_source_module'(SM), uses_predicate(_DEF,SM,M,F,A,R).
+%uses_predicate(_DEF,F/A,R):- '$current_source_module'(SM),'context_module'(M),uses_predicate(_DEF,SM,M,F,A,R).
+
+% uses_predicate_new(_Was,_CM,_M,_F,_A,Error):- is_parent_goal(check:check),!,Error=error.
+
+ uses_predicate_new(_Was,_CM,_M,_F,_A,Error):- show_success(is_parent_goal('$define_predicate')),!,Error=error.
 
 
+uses_predicate_new(Was,CM,M,F,A,Action):-
+ setup_call_cleanup(set_prolog_flag(retry_undefined,false),
+  show_failure(uses_predicate(Was,CM,M,F,A,Action)),
+  set_prolog_flag(retry_undefined,Was)).
 
 is_parent_goal(G):- prolog_current_frame(F),prolog_frame_attribute(F,parent_goal, G).
 is_parent_goal(F,G):-prolog_frame_attribute(F,parent_goal, G).
@@ -65,60 +76,65 @@ is_parent_goal(F,G):-prolog_frame_attribute(F,parent_goal, G).
 has_parent_goal(G):- prolog_current_frame(F),prolog_frame_attribute(F,parent, PF),has_parent_goal(PF,G).
 has_parent_goal(F,G):-prolog_frame_attribute(F,goal, G);(prolog_frame_attribute(F,parent, PF),has_parent_goal(PF,G)).
 
+uses_predicate(_DEF,_, _, ~, 1, error) :- !.
 
+uses_predicate(_DEF,_,CallerMt,'$pldoc',4,retry):- make_as_dynamic(uses_predicate,CallerMt,'$pldoc',4),!.
+uses_predicate(_DEF,User, User, module, 2, error):-!.
+uses_predicate(_DEF,_,_, (:-), _, error) :- !, fail. 
+uses_predicate(_DEF,_,_, (/), _, error) :- !. 
+uses_predicate(_DEF,_,_, (//), _, error) :- !. 
+uses_predicate(_DEF,_,_, (:), _, error) :- !. % ,dumpST_dbreak.
+% uses_predicate(_DEF,_,_, '[|]', _, error) :- !,dumpST_dbreak.
+% uses_predicate(_DEF,_,_, '>>',  4, error) :- !,dumpST_dbreak.
 
-uses_predicate(_, _, ~, 1, error) :- !.
-
-uses_predicate(_,CallerMt,'$pldoc',4,retry):- make_as_dynamic(uses_predicate,CallerMt,'$pldoc',4),!.
-uses_predicate(User, User, module, 2, error):-!.
-uses_predicate(_,_, (:-), _, error) :- !, fail. % dumpST_dbreak.
-uses_predicate(_,_, (/), _, error) :- !. % dumpST_dbreak.
-uses_predicate(_,_, (//), _, error) :- !. % dumpST_dbreak.
-uses_predicate(_,_, (:), _, error) :- !. % ,dumpST_dbreak.
-% uses_predicate(_,_, '[|]', _, error) :- !,dumpST_dbreak.
-% uses_predicate(_,_, '>>',  4, error) :- !,dumpST_dbreak.
-
-uses_predicate(_,M, inherit_above,_,error):- M:use_module(library(virtualize_source)).
+uses_predicate(_DEF,_,M, inherit_above,_,retry):- M:use_module(library(virtualize_source)).
 
 % makes sure we ignore calls to predicate_property/2  (or thus '$define_predicate'/1)
-% uses_predicate(_,M,F,A,R):- prolog_current_frame(FR), functor(P,F,A),(prolog_frame_attribute(FR,parent_goal,predicate_property(M:P,_))),!,R=error.
-uses_predicate(_,Module,Name,Arity,Action) :-
+% uses_predicate(_DEF,_,M,F,A,R):- prolog_current_frame(FR), functor(P,F,A),(prolog_frame_attribute(FR,parent_goal,predicate_property(M:P,_))),!,R=error.
+uses_predicate(_DEF,_,Module,Name,Arity,Action) :-
       current_prolog_flag(autoload, true),
 	'$autoload'(Module, Name, Arity), !,
 	Action = retry.
 
 % make sure we ignore calls to predicate_property/2  (or thus '$define_predicate'/1)
-uses_predicate(_,_,_,_,error):- 
+uses_predicate(_DEF,_,_,_,_,error):- 
    prolog_current_frame(F),
   (is_parent_goal(F,'$define_predicate'(_));
    (fail,is_parent_goal(F,'assert_u'(_)));
    has_parent_goal(F,'$syspreds':property_predicate(_,_))),!.
 
 
-uses_predicate(M, Var, F, A, Reply):- var(Var),nonvar(M),!,uses_predicate(M, M, F, A, Reply).
+uses_predicate(DEF,M, Var, F, A, Reply):- var(Var),nonvar(M),!,uses_predicate(DEF,M, M, F, A, Reply).
 
 % keeps from calling this more than once
-uses_predicate(SM,M,F,A,_Error):- 
+uses_predicate(DEF,SM,M,F,A,_Error):- 
   (lmcache:tried_to_retry_undefined(SM,M,F,A)-> 
     (wdmsg(re_used_predicate(SM,M,F,A)),fail) ;
-    (wdmsg(uses_predicate(SM,M,F,A)),assert(lmcache:tried_to_retry_undefined(SM,M,F,A)))),
+    (wdmsg(uses_predicate(DEF,SM,M,F,A)),assert(lmcache:tried_to_retry_undefined(SM,M,F,A)))),
   fail.
 
-uses_predicate(_,System, _,_, error):- module_property(System,class(system)),!.
-uses_predicate(_,System, _,_, error):- module_property(System,class(library)),!.
+uses_predicate(_DEF,_,System, _,_, error):- module_property(System,class(system)),!.
+uses_predicate(_DEF,_,System, _,_, error):- module_property(System,class(library)),!.
 
-uses_predicate(System, M, F,A, retry):- 
-   uses_undefined_hook(M),
+uses_predicate(kb_shared,System, M, F,A, retry):- !,
+   show_failure(uses_undefined_hook(M)),
+   create_predicate_inheritance(M,F,A),
+   nop(System:import(M:F/A)),!.
+
+uses_predicate(DEF,System, M, F,A, retry):- 
+   % uses_undefined_hook(M),
+   call(DEF,M:F/A),
    create_predicate_inheritance(M,F,A),
    nop(System:import(M:F/A)),!.
 
 
-uses_predicate(BaseKB,System, F,A,R):-   System\==BaseKB, clause_b(mtHybrid(BaseKB)),\+ clause_b(mtHybrid(System)),!,dumpST,
-   must(uses_predicate(System,BaseKB,F,A,R)),!.
+uses_predicate(DEF,BaseKB,System, F,A,R):-   System\==BaseKB, 
+  clause_b(mtHybrid(BaseKB)),\+ clause_b(mtHybrid(System)),!,dumpST,
+   must(uses_predicate(DEF,System,BaseKB,F,A,R)),!.
 
 
-uses_predicate(SM,CallerMt,F,A,R):- trace_or_throw(uses_predicate(SM,CallerMt,F,A,R)), break,
-    loop_check_term(retry_undefined(CallerMt,F,A),dump_break_loop_check_uses_predicate(SM,CallerMt,F,A,retry),dump_break),
+uses_predicate(DEF,SM,CallerMt,F,A,R):- trace_or_throw(uses_predicate(DEF,SM,CallerMt,F,A,R)), break,
+    loop_check_term(retry_undefined(CallerMt,F,A),dump_break_loop_check_uses_predicate(_DEF,SM,CallerMt,F,A,retry),dump_break),
     R=retry.
 
 
@@ -208,7 +224,16 @@ uses_undefined_hook(CM):- clause_b(genlMt(CM,_)),!.
 uses_undefined_hook(baseKB).
 uses_undefined_hook(user).
 
+
 :- fixup_exports.
+
+:- multifile(prolog:make_hook/2).
+:- dynamic(prolog:make_hook/2).
+:- multifile(lmcache:was_retry_undefined/2).
+:- dynamic(lmcache:was_retry_undefined/2).
+:- dynamic(prolog:make_hook/2).
+prolog:make_hook(before, C):- current_prolog_flag(retry_undefined, WAS),asserta(lmcache:was_retry_undefined(WAS,C)),set_prolog_flag(retry_undefined, fail),fail.
+prolog:make_hook(after, C):- retract(lmcache:was_retry_undefined(WAS,C)),set_prolog_flag(retry_undefined, WAS),fail.
 
 :- multifile(user:exception/3).
 :- module_transparent(user:exception/3).
@@ -217,17 +242,12 @@ uses_undefined_hook(user).
 user:exception(undefined_predicate, M:F/A, ActionO):- 
   \+ current_prolog_flag(retry_undefined, none), current_prolog_flag(retry_undefined, Was),
    Was \== false,
-  strip_module(F/A,CM,F/A),
-  (uses_undefined_hook(CM);uses_undefined_hook(M)),!,
-  show_failure(pfc_define(mfa(CM)), must(CM:uses_predicate(M:F/A, Action))),
-  ((Action==retry, tracing) -> dbreak ; true),Action=ActionO.
+  strip_module(F/A,CM,_),
+  uses_predicate_new(Was,CM,M,F,A, ActionO).
 
 user:exception(undefined_predicate, F/A, ActionO):- 
   \+ current_prolog_flag(retry_undefined, none), current_prolog_flag(retry_undefined, Was),
    Was \== false,
-  strip_module(F/A,CM,F/A),
-  uses_undefined_hook(CM),!,
-  show_failure(pfc_define(CM), must(CM:uses_predicate(CM:F/A, Action))),
-  ((Action==retry, tracing) -> dbreak ; true),Action=ActionO.
-
+  strip_module(F/A,CM,_),
+  uses_predicate_new(Was,CM,CM,F,A, ActionO).
 

@@ -73,10 +73,15 @@ make_as_dynamic/4
 %
 % Ensure inherit_above/2 stub is present in ChildDefMt.
 %
+
+%create_predicate_inheritance(CallerMt,F,A):- clause_b((baseKB:mpred_prop(CallerMt,F,A,inherits_above))),!.
+%create_predicate_inheritance(CallerMt,F,A):- assert_if_new((baseKB:mpred_prop(CallerMt,F,A,inherits_above))),fail.
+
 create_predicate_inheritance(CallerMt,F,A):- lmcache:already_decl(kb_global,M,F,A),!,CallerMt:import(M:F/A).
 %create_predicate_inheritance(_,F,A):- lmcache:already_decl(kb_shared,_,F,A),!.
 %create_predicate_inheritance(M,F,A):- show_success(lmcache:already_decl(kb_local,M,F,A)),!.
 %create_predicate_inheritance(M,F,A):- show_success(lmcache:already_decl(kb_shared,M,F,A)),!.
+
 create_predicate_inheritance(CallerMt,F,A):- now_inherit_above(CallerMt,F,A),!.
 
 
