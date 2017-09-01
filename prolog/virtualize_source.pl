@@ -461,14 +461,18 @@ is_reltype(P):-clause_b(ttRelationType(P)).
 
 :- export(cnas/3).
 
-cnas(A,B,C):-compound_name_args_safe(A,B,C).
+cnas(A,B,C):- compound_name_args_safe(A,B,C).
+cfunctor(A,B,C):- on_x_debug((compound(A)->compound_name_arity(A,B,C);functor(A,B,C))).
+
 :- system:import(cnas/3).
+:- system:import(cfunctor/3).
 
 cannot_descend_expansion(_,In):- \+ compound(In),!.
 cannot_descend_expansion(ge,In):- strip_module(In,M,FA),functor(FA,F,A),!,never_virtualize(M:F/A).
 
 
 virtualize_code(_,In,Out):- \+ compound(In),!,In=Out.
+virtualize_code(_,functor(P,F,A),cfunctor(P,F,A)):-!.
 virtualize_code(_,(SWC,REST),(SWC,REST)):- (swc==SWC /* ;cwc==SWC */),!. % never goal expand
 virtualize_code(X,(VWC,In),(Out)):- vwc==VWC,!,virtualize_code(X,In,Out).
 virtualize_code(_,P=..In,cnas(P,H,T)):- nonvar(In),In=[H|T],!.
