@@ -44,9 +44,12 @@
    is_parent_goal/1,
    is_parent_goal/2)).
 
-install_retry_undefined(Module,Setting):- asserta(ru:retry_undefined_hook(Module,Setting)).
+:- dynamic(ru:retry_undefined_hook/2).
+
+install_retry_undefined(Module,Setting):- asserta((ru:retry_undefined_hook(Module,Was):-!,Was=Setting)).
 
 :- install_retry_undefined('$toplevel',error).
+:- install_retry_undefined('user',error).
 
 uses_undefined_hook.
 
@@ -228,16 +231,17 @@ prolog:make_hook(after, C):- retract(lmcache:was_retry_undefined(WAS,C)),set_pro
 
 user:exception(undefined_predicate, M:F/A, ActionO):- 
   current_prolog_flag(retry_undefined, Was),Was \== false, Was \== none,
-  strip_module(F/A,CM,_), \+ prolog_load_context(reload,true),
-   setup_call_cleanup(set_prolog_flag(retry_undefined, false),
+  strip_module(F/A,CM,_), \+ prolog_load_context(reloading,true),
+   M:setup_call_cleanup(set_prolog_flag(retry_undefined, false),
                       (uses_predicate(Was,CM,M,F,A, ActionO), ActionO \== error),
                       set_prolog_flag(retry_undefined, Was)).
 
 
-user:exception(undefined_predicate, F/A, ActionO):- 
+user:exception(undefined_predicate, F/A, ActionO):-  
+  ru:retry_undefined_hook(user,Setting),!,Setting\==error,
   current_prolog_flag(retry_undefined, Was),Was \== false, Was \== none,
-  strip_module(F/A,CM,_), \+ prolog_load_context(reload,true),
-   setup_call_cleanup(set_prolog_flag(retry_undefined, false),
+  strip_module(F/A,CM,_), \+ prolog_load_context(reloading,true),
+   CM:setup_call_cleanup(set_prolog_flag(retry_undefined, false),
                       (uses_predicate(Was,CM,CM,F,A, ActionO), ActionO \== error),
                       set_prolog_flag(retry_undefined, Was)).
 
