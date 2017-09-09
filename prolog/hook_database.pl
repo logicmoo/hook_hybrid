@@ -321,7 +321,7 @@ somehow_callable(G):-current_predicate(_,_:G),!.
 %
 % Assert If New Primary Helper.
 %
-ain0(N):-notrace(clause_asserted(N))->true;mpred_op_prolog(assert,N).
+ain0(N):-quietly(clause_asserted(N))->true;mpred_op_prolog(assert,N).
 
 :- export(mpred_op_prolog/2).
 :- module_transparent(mpred_op_prolog/2).
@@ -333,10 +333,10 @@ ain0(N):-notrace(clause_asserted(N))->true;mpred_op_prolog(assert,N).
 %
 % Managed Predicate Oper. Prolog.
 %
-mpred_op_prolog(ain0,N):- !,(notrace(clause_asserted(N))->true;mpred_op_prolog0(assert,N)).
-mpred_op_prolog(paina,N):-!,(notrace(clause_asserted(N))->true;mpred_op_prolog0(system:asserta,N)).
-mpred_op_prolog(painz,N):-!,(notrace(clause_asserted(N))->true;mpred_op_prolog0(system:assertz,N)).
-mpred_op_prolog(pain,N):- !,(notrace(clause_asserted(N))->true;mpred_op_prolog0(assert,N)).
+mpred_op_prolog(ain0,N):- !,(quietly(clause_asserted(N))->true;mpred_op_prolog0(assert,N)).
+mpred_op_prolog(paina,N):-!,(quietly(clause_asserted(N))->true;mpred_op_prolog0(system:asserta,N)).
+mpred_op_prolog(painz,N):-!,(quietly(clause_asserted(N))->true;mpred_op_prolog0(system:assertz,N)).
+mpred_op_prolog(pain,N):- !,(quietly(clause_asserted(N))->true;mpred_op_prolog0(assert,N)).
 mpred_op_prolog(aina,N):- !,(clause_asserted(N)->true;mpred_op_prolog0(system:asserta,N)).
 mpred_op_prolog(ainz,N):- !,(clause_asserted(N)->true;mpred_op_prolog0(system:assertz,N)).
 mpred_op_prolog(ain,N):-  !,(clause_asserted(N)->true;mpred_op_prolog0(assert,N)).
@@ -637,7 +637,7 @@ modulize_head(MH,M:H):- strip_module(MH,Cm,H),!,
   modulize_head_fb(Cm,H,Cm,M:H).
 
 modulize_head_fb(From,H,Fallback,M:H):- 
- notrace((findall(M:H,
+ quietly((findall(M:H,
   ((no_repeats(M, ((current_module_from(From,M),current_predicate(_,M:H),\+ predicate_property(M:H,imported_from(_))))))->true;
   M=Fallback),List))),
  member(M:H,List).
@@ -676,7 +676,7 @@ put_clause_ref(_Ref,_V):- !.
 put_clause_ref(Ref,V):- !, nop(dmsg(put_clause_ref(Ref,V))).
 put_clause_ref(Ref,V):-put_attr(V,cref,Ref).
 
-remove_term_attr_type(Term,Mod):- notrace((term_attvars(Term,AVs),maplist(del_attr_type(Mod),AVs))).
+remove_term_attr_type(Term,Mod):- quietly((term_attvars(Term,AVs),maplist(del_attr_type(Mod),AVs))).
 
 :- op(700,xfx,'=@=').
 
@@ -725,7 +725,7 @@ dbreq(C):- ereq(C).
 :-meta_predicate(clause_true(?)).
 
 
-predicate_property_safe(P,PP):- notrace(predicate_property(P,PP)).
+predicate_property_safe(P,PP):- quietly(predicate_property(P,PP)).
 
 %% clause_b( ?C) is semidet.
 %
@@ -762,7 +762,7 @@ clause_b(Goal):- (clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal).
 clause_true(G):- !, clause_b(G).
 
 clause_true(M:G):-!,system:clause(M:G,true)*->true;(current_module_ordered(M2),system:clause(M2:G,true)).
-clause_true(G):- notrace((current_module_ordered(M), \+ \+  system:clause(M:G,_,_))),!, system:clause(M:G,true).
+clause_true(G):- quietly((current_module_ordered(M), \+ \+  system:clause(M:G,_,_))),!, system:clause(M:G,true).
 %clause_true(M:G):- predicate_property(M:G,number_of_clauses(_)),!,system:clause(M:G,true).
 %clause_true(_:G):-!,predicate_property(M:G,number_of_clauses(_)),system:clause(M:G,true).
 %clause_true(G):-!,predicate_property(M:G,number_of_clauses(_)),system:clause(M:G,true).
@@ -802,7 +802,7 @@ retract_eq(HB):-expand_to_hb(HB,H,B),show_failure(modulize_head(H,MH)),clause_as
 % Safely Paying Attention To Corner Cases Univ.
 %
 safe_univ(SCall,Univ):-string(SCall),!,maybe_notrace(atom_string(Call,SCall)),[Call]=Univ.
-safe_univ(Call,List):- notrace(safe_univ0(Call,List)),!.
+safe_univ(Call,List):- quietly(safe_univ0(Call,List)),!.
 
 
 %= 	 	 
@@ -835,7 +835,7 @@ bad_functor(L) :- arg(_,v('|','.',[],':','/'),L).
 %
 % Warn Bad Functor.
 %
-warn_bad_functor(L):-ignore((notrace(bad_functor(L)),!,dtrace,call(ddmsg(bad_functor(L))))).
+warn_bad_functor(L):-ignore((quietly(bad_functor(L)),!,dtrace,call(ddmsg(bad_functor(L))))).
 
 
 %= 	 	 

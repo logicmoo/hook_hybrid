@@ -176,8 +176,6 @@ call_from_module(NewModule,Goal):-
       NewModule:Call,
       ('$set_source_module'(OldSModule),'$set_typein_module'(OldModule))).
 
-:- nortrace.
-
 dump_break:- prolog_stack:backtrace(8000),dtrace. % system:dbreak.
 
 
@@ -770,8 +768,8 @@ get_module_of_4(P,F,A,PredMt):- dtrace, debugCall(get_module_of_4(P,F,A,PredMt))
 % get_module_of(_:F/A,PredMt):- functor_catch(P,F,A),!,get_module_of(P,PredMt).
 
 get_module_of(P,M):- with_pred_head(get_module_of0(M),P).
-get_module_of0(PredMt,P):- notrace(predicate_property(P,imported_from(PredMt))),!.
-get_module_of0(PredMt,P):- notrace(predicate_property(_:P,imported_from(PredMt))),!.
+get_module_of0(PredMt,P):- quietly(predicate_property(P,imported_from(PredMt))),!.
+get_module_of0(PredMt,P):- quietly(predicate_property(_:P,imported_from(PredMt))),!.
 get_module_of0(PredMt,MM:_):-!,MM=PredMt.
 get_module_of0(PredMt,P):-functor_catch(P,F,A),get_module_of_4(P,F,A,PredMt).
 

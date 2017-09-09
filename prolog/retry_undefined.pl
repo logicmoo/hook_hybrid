@@ -229,7 +229,7 @@ prolog:make_hook(after, C):- retract(lmcache:was_retry_undefined(WAS,C)),set_pro
 :- module_transparent(user:exception/3).
 :- dynamic(user:exception/3).
 
-user:exception(undefined_predicate, M:F/A, ActionO):- 
+user:exception(undefined_predicate, M:F/A, ActionO):-   
   current_prolog_flag(retry_undefined, Was),Was \== false, Was \== none,
   strip_module(F/A,CM,_), \+ prolog_load_context(reloading,true),
    M:setup_call_cleanup(set_prolog_flag(retry_undefined, false),
@@ -237,7 +237,7 @@ user:exception(undefined_predicate, M:F/A, ActionO):-
                       set_prolog_flag(retry_undefined, Was)).
 
 
-user:exception(undefined_predicate, F/A, ActionO):-  
+user:exception(undefined_predicate, F/A, ActionO):-   
   ru:retry_undefined_hook(user,Setting),!,Setting\==error,
   current_prolog_flag(retry_undefined, Was),Was \== false, Was \== none,
   strip_module(F/A,CM,_), \+ prolog_load_context(reloading,true),

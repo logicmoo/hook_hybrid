@@ -74,7 +74,7 @@ vwc/0
 
 :- reexport(library(hook_database)).
 
-nb_current_or_nil(N,V):- notrace((nb_current(N,V)->true;V=[])).
+nb_current_or_nil(N,V):- quietly((nb_current(N,V)->true;V=[])).
 
 /*
 :- multifile(baseKB:col_as_isa/1).
@@ -461,8 +461,9 @@ is_reltype(P):-clause_b(ttRelationType(P)).
 
 :- export(cnas/3).
 
-cnas(A,B,C):- compound_name_args_safe(A,B,C).
-cfunctor(A,B,C):- on_x_debug((compound(A)->compound_name_arity(A,B,C);functor(A,B,C))).
+% cnas(A,B,C):- compound_name_args_safe(A,B,C).
+cnas(A,B,C):- compound(A)-> compound_name_arguments(A,B,C);( A=..[B|C]).
+cfunctor(A,B,C):- compound(A)->compound_name_arity(A,B,C);functor(A,B,C).
 
 :- system:import(cnas/3).
 :- system:import(cfunctor/3).

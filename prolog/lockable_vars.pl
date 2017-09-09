@@ -89,7 +89,7 @@ combine_varnames(Name1,Name2,Name):-
 %
 
 unlock_vars(_Var):- skip_varlocks,!.
-unlock_vars(Term):- must(notrace((term_attvars(Term,Vs),maplist(delete_vl,Vs)))).
+unlock_vars(Term):- must(quietly((term_attvars(Term,Vs),maplist(delete_vl,Vs)))).
 
 delete_vl( Var):- var(Var),!, del_attr(Var,vl).
 delete_vl( Term):- term_attvars(Term,Vs),maplist(delete_vl,Vs).
