@@ -705,9 +705,15 @@ clause_i(H,B):- clause_i(H,B,_).
 clause_i(H0,B0,Ref):- \+ current_prolog_flag(assert_attvars,true) ,!, system:clause(H0,B0,Ref).
 clause_i(H0,B0,Ref):- clause_attv(H0,B0,Ref).
 
+assert_i(X):- check_never_assert(X),fail.
 assert_i(HB):- clausify_attributes(HB,CL),assert(CL).
+
+asserta_i(X):- check_never_assert(X),fail.
 asserta_i(HB):-clausify_attributes(HB,CL),system:asserta(CL).
+
+assertz_i(X):- check_never_assert(X),fail.
 assertz_i(HB):-clausify_attributes(HB,CL),system:assertz(CL).
+
 retract_i(HB):- expand_to_hb(HB,H,B), (clause_i(H,B,Ref)*->erase(Ref)).
 retractall_i(H):-expand_to_hb(H,HH,_),forall(clause_i(HH,_,Ref),erase(Ref)).
 
