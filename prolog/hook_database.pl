@@ -623,6 +623,22 @@ clause_asserted(H,B):-clause_asserted(H,B,_).
 %
 clause_asserted(M:H,B,R):- copy_term(M:H:B,MHB),system:clause(M:H,B,R),variant(M:H:B,MHB).
 
+:- meta_predicate(clause_asserted1(:,?,?)).
+clause_asserted1(M:H,B,R):-
+   functor(H,F,A),functor(HH,F,A),
+   freeze(BB,(HH:BB=@=H:B)),
+   clause(M:HH,BB,R).
+
+/*
+
+clause_asserted_test(M:H,B,R):- freeze(BB,(HH:BB=@=H:B)),clause(M:HH,BB,R).
+
+:- asserta(foo(A):-bar(A)).
+
+clause_asserted_test(foo(A),bar(A),R).
+
+*/
+
 
 :-meta_predicate(modulize_head(?,?)).
 
