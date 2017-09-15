@@ -421,9 +421,9 @@ call_provider(OP,Term):- must(std_provider(OP,Term,PROVIDER)),!,
 
 :- meta_predicate assert_setting(:).
 %% assert_setting( ?X) is semidet.
-assert_setting(M:P):-functor(P,_,A),duplicate_term(P,DP),setarg(A,DP,_),system:retractall(M:DP),system:asserta(M:P).
+assert_setting(M:P):-functor(P,_,A),dupe_term(P,DP),setarg(A,DP,_),system:retractall(M:DP),system:asserta(M:P).
 :- meta_predicate assert_setting_if_missing(:).
-assert_setting_if_missing(M:P):-functor(P,_,A),duplicate_term(P,DP),setarg(A,DP,_),(system:clause(M:DP,_)->true;system:asserta(M:P)).
+assert_setting_if_missing(M:P):-functor(P,_,A),dupe_term(P,DP),setarg(A,DP,_),(system:clause(M:DP,_)->true;system:asserta(M:P)).
 
 :- meta_predicate assert_if_new(:).
 
