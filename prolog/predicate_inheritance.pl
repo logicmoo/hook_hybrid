@@ -136,6 +136,8 @@ never_move(proven_tru,_).
 never_move(_,_).
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
+system:do_inherit_above(Mt,_):- t_l:exact_kb(Mt),!,fail.
+
 system:do_inherit_above(Mt,QueryIn):- 
    functor(QueryIn,F,A),\+ never_move(F,A),
    predicate_property(QueryIn,number_of_clauses(N)),
@@ -147,6 +149,7 @@ system:do_inherit_above(Mt,QueryIn):-
    Mt:assertz((Query:-inherit_above(Mt,Query))))),fail.
 
   % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
+
 system:do_inherit_above(Mt,Query):- 
    clause(genlMt(Mt,MtAbove),true),
    do_call_inherited(MtAbove,Query).
