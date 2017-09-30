@@ -132,7 +132,7 @@ never_move(meta_argtypes,_).
 never_move(pt,_).
 never_move(bt,_).
 never_move(nt,_).
-never_move(proven_tru,_).
+never_move(proven_nesc,_).
 never_move(_,_).
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
