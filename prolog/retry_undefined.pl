@@ -238,8 +238,8 @@ user:exception(undefined_predicate, M:F/A, ActionO):-
 
 
 user:exception(undefined_predicate, F/A, ActionO):-   
-  ru:retry_undefined_hook(user,Setting),!,Setting\==error,
   current_prolog_flag(retry_undefined, Was),Was \== false, Was \== none,
+  ru:retry_undefined_hook(user,Setting),!,Setting\==error,  
   strip_module(F/A,CM,_), \+ prolog_load_context(reloading,true),
    CM:setup_call_cleanup(set_prolog_flag(retry_undefined, false),
                       (uses_predicate(Was,CM,CM,F,A, ActionO), ActionO \== error),
