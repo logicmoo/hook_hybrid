@@ -84,7 +84,7 @@ uses_predicate(_DEF,_,CallerMt,'$pldoc',4,retry):- make_as_dynamic(uses_predicat
 uses_predicate(_DEF,User, User, module, 2, error):-!.
 uses_predicate(_DEF,_,_, (:-), _, error) :- !, fail. 
 uses_predicate(_DEF,_,_, (/), _, error) :- !. 
-uses_predicate(_DEF,_,_, (//), _, error) :- !. 
+uses_predicate(_DEF,_,_, ( '//' ), _, error) :- !. 
 uses_predicate(_DEF,_,_, F, _, error) :- atom_concat('__',_,F),!.
 uses_predicate(_DEF,_,_, F, _, error) :- atom_concat('$',_,F),!.
 
@@ -134,8 +134,7 @@ in_autoload_library_index(F,A,PredMt,File):- autoload_library_index(F,A,PredMt,F
 
 :- meta_predicate with_no_retry_undefined(:).
 with_no_retry_undefined(Goal):- locally(set_prolog_flag(retry_undefined, none),
-                                     locally(flag_call(runtime_debug=false),Goal)).
-
+                                     locally(set_prolog_flag(runtime_debug,0),Goal)).
 
 
 % Every module has it''s own
