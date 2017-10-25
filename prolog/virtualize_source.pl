@@ -459,14 +459,6 @@ is_reltype(prologHybrid).
 is_reltype(prologBuiltin).
 is_reltype(P):-clause_b(ttRelationType(P)).
 
-:- export(cnas/3).
-
-% cnas(A,B,C):- compound_name_args_safe(A,B,C).
-cnas(A,B,C):- compound(A)-> compound_name_arguments(A,B,C);( A=..[B|C]).
-cfunctor(A,B,C):- compound(A)->compound_name_arity(A,B,C);functor(A,B,C).
-
-:- system:import(cnas/3).
-:- system:import(cfunctor/3).
 
 cannot_descend_expansion(_,In):- \+ compound(In),!.
 cannot_descend_expansion(ge,In):- strip_module(In,M,FA),functor(FA,F,A),!,never_virtualize(M:F/A).
