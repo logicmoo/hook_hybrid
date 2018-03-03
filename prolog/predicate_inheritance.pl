@@ -136,6 +136,7 @@ never_move(proven_tru,_).
 never_move(_,_).
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
+:- thread_local(t_l:exact_kb/1).
 system:do_inherit_above(Mt,_):- t_l:exact_kb(Mt),!,fail.
 
 system:do_inherit_above(Mt,QueryIn):- 
