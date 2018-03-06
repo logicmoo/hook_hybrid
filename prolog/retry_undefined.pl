@@ -207,7 +207,10 @@ retry_undefined(CallerMt,F,A):- fail,fail,fail,fail,fail,fail,fail,fail,fail,fai
 
 :- endif.
 
+
+
 %uses_undefined_hook(CM):- (clause_b(genlMt(CM,_));clause_b(mtHybrid(CM))).
+uses_undefined_hook(CM):- nonvar(CM),clause(mtNoInheritance(CM),true),!,fail.
 uses_undefined_hook(CM):- clause_b(genlMt(CM,_)),!.
 % uses_undefined_hook(CM):- is_pfc_module(CM),!.
 uses_undefined_hook(baseKB).

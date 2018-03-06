@@ -99,7 +99,6 @@ now_inherit_above(baseKB,F,A):- !,
   make_as_dynamic(now_inherit_above(baseKB,F,A),baseKB,F,A), 
      ignore((( \+ (defaultAssertMt(CallerMt),CallerMt\==baseKB,now_inherit_above(CallerMt,F,A) )))).
 */
-
 now_inherit_above(abox,F,A):-  
        !, must(defaultAssertMt(CallerMt)),
        sanity(CallerMt\=abox),!,
@@ -121,8 +120,9 @@ now_inherit_above(CallerMt,F,A):-
 
 :- module_transparent(system:inherit_above/2).
 :- export(system:inherit_above/2).
-system:inherit_above(Mt,Query):-  
+system:inherit_above(Mt,Query):- 
    \+ context_module(baseKB), 
+   Mt\=baseKB, 
    Query\=do_inherit_above(_,_),
    do_inherit_above(Mt,Query).
 
@@ -159,6 +159,7 @@ system:do_inherit_above(Mt,Query):-
 :- export(system:do_call_inherited/2).
 system:do_call_inherited(MtAbove,Query):- 
    \+ current_prolog_flag(retry_undefined,none),
+   % use_inheritance(MtAbove),
    \+ current_predicate(_,MtAbove:Query),
    functor(Query,F,A) -> create_predicate_inheritance(MtAbove,F,A) -> fail.
 
