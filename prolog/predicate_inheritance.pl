@@ -265,7 +265,6 @@ predicate_m_f_a_decl(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
 pred_decl_kb_mfa_type(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
-rdf_rewrite:decl_kb_global(M,F,A):- predicate_inheritance:decl_kb_global(M,F,A).
 
 %:- dynamic(rdf_rewrite:decl_kb_global/3).
 %:- multifile(rdf_rewrite:decl_kb_global/3).
@@ -283,6 +282,8 @@ decl_kb_global(M,F,A):- trace_or_throw(bad_kb_global(M,F,A)).
 do_decl_kb_global(M,prologSingleValued,0):- trace_or_throw(do_decl_kb_global(M,prologSingleValued,0)).
 
 do_decl_kb_global(M,F,A):-functor(PI,F,A),do_decl_kb_global_1(M,F,A,PI).
+
+:- rdf_rewrite:import(decl_kb_global/3).
 
 %do_decl_kb_global_1(M,F,A,PI):- M\=baseKB,M\=elmt,M\=rdf_rewrite,\+ clause(baseKB:using_pfc(user,M,pfc_mod),true),dumpST,break,(trace_or_throw(do_decl_kb_global_m(M,F,A,PI))).
 %do_decl_kb_global_1(M,F,A,PI):- if_defined(mpred_database_term(F,A,_),F = ~),dmsg(trace_or_throw(do_decl_kb_global_1(M,F,A,PI))).

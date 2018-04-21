@@ -100,7 +100,7 @@ uses_predicate(_DEF,_,Module,Name,Arity,Action) :-
 	'$autoload'(Module, Name, Arity), !,
 	Action = retry.
 
-uses_predicate(Setting,SM,M,F,A,Act):- dmsg(uses_predicate(Setting,SM,M,F,A,Act)),!,fail.
+%uses_predicate(Setting,SM,M,F,A,Act):- nop(dmsg(uses_predicate(Setting,SM,M,F,A,Act))),!,fail.
 
 uses_predicate(_,SM,M,F,A,Act):- ru:retry_undefined_hook(M,Setting),!, uses_predicate_setting(Setting,SM,M,F,A,Act).
 
