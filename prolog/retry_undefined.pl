@@ -100,7 +100,7 @@ uses_predicate(_DEF,_,Module,Name,Arity,Action) :-
 	'$autoload'(Module, Name, Arity), !,
 	Action = retry.
 
-%uses_predicate(Setting,SM,M,F,A,Act):- nop(dmsg(uses_predicate(Setting,SM,M,F,A,Act))),!,fail.
+uses_predicate(Setting,SM,M,F,A,Act):- nop(dmsg(uses_predicate(Setting,SM,M,F,A,Act))),!,fail.
 
 uses_predicate(_,SM,M,F,A,Act):- ru:retry_undefined_hook(M,Setting),!, uses_predicate_setting(Setting,SM,M,F,A,Act).
 
@@ -227,6 +227,7 @@ uses_undefined_hook(baseKB).
 :- dynamic(lmcache:was_retry_undefined/2).
 :- dynamic(prolog:make_hook/2).
 prolog:make_hook(before, C):- current_prolog_flag(retry_undefined, WAS),asserta(lmcache:was_retry_undefined(WAS,C)),set_prolog_flag(retry_undefined, fail),fail.
+
 prolog:make_hook(after, C):- retract(lmcache:was_retry_undefined(WAS,C)),set_prolog_flag(retry_undefined, WAS),fail.
 
 :- multifile(user:exception/3).
