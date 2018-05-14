@@ -118,7 +118,7 @@ uses_predicate(Setting,SM,M,F,A,Act):- Setting\==kb_shared, SM\==user, M\==baseK
 
 uses_predicate(kb_shared,System, M, F,A, retry):-   
    show_failure(uses_undefined_hook(M)),
-   create_predicate_inheritance(M,F,A),
+   create_predicate_inheritance(kb_shared(M:F/A),M,F,A),
    nop(System:import(M:F/A)),!.
 
 % uses_predicate(true,_, M,F,A, Retry):-  retry_undefined(M,F,A),!,Retry=retry.
@@ -161,7 +161,7 @@ retry_undefined_falsed_out(Mt, F, A):-  clause_b(mtCycLBroad(Mt)), clause_b(hybr
 % child-like Mt
 retry_undefined_falsed_out(CallerMt,F,A):- clause_b(mtGlobal(CallerMt)), clause_b(hybrid_support(F,A)),
    % find_and_call(baseKB:mtGlobal(CallerMt)),
-   create_predicate_inheritance(CallerMt,F,A).
+   create_predicate_inheritance(retry_undefined_falsed_out(CallerMt:F/A),CallerMt,F,A).
 
 % import built-ins ?
 retry_undefined_falsed_out(CallerMt,F,A):- current_predicate(system:F/A), current_module(M),M\=system,

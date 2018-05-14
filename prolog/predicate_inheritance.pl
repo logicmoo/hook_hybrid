@@ -179,6 +179,10 @@ make_as_dynamic(Reason,M,F,A):- Reason= kb_local(_),!,make_as_dynamic_realy(Reas
 make_as_dynamic(Reason,M,F,A):- F== is_pfc_file, break, make_as_dynamic_realy(Reason,M,F,A).
 make_as_dynamic(Reason,M,F,A):- dmsg(make_as_dynamic(Reason,M,F,A)),!,make_as_dynamic_realy(Reason,M,F,A),!. 
 
+:- multifile(user:message_hook/3).
+:- dynamic(user:message_hook/3).
+user:message_hook(import_private(Module, Private),_,_):- Module==system,!, nop(dmsg(import_private(Module, Private))).
+user:message_hook(import_private(Module, Private),_,_):- dmsg(import_private(Module, Private)).
 
 make_as_dynamic_realy(Reason,M,F,A):- 
  must_det_l((
@@ -280,7 +284,7 @@ pred_decl_kb_mfa_type(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
 
 % TODO comment this out!
-decl_kb_global(M,'==>',A):- !, dmsg(skip(decl_kb_global(M,'==>',A))).
++decl_kb_global(M,'==>',A):- !, dmsg(skip(decl_kb_global(M,'==>',A))).
 
 decl_kb_global(M,F,A):- check_mfa(kb_global,M,F,A),!,
   (lmcache:already_decl(kb_global,M,F,A)->true;
