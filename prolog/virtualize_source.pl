@@ -90,20 +90,32 @@ nb_current_or_nil(N,V):- quietly((nb_current(N,V)->true;V=[])).
 
 :- asserta((baseKB:ignore_file_mpreds(M):- skipped_dirs(M))).
 
-skipped_dirs(M):-expand_file_search_path(swi(''),M),nonvar(M).
-skipped_dirs(M):-expand_file_search_path(pack(logicmoo_util),M),nonvar(M).
+skipped_dirs(Dir):-skipped_dirs0(M),exists_directory(M),absolute_file_name(M,Dir).
+skipped_dirs0(M):-expand_file_search_path(swi(''),M).
+skipped_dirs0(M):-expand_file_search_path(pack(logicmoo_util),M).
+skipped_dirs0(M):-expand_file_search_path(pack('swish/..'),M).
+skipped_dirs0(M):-expand_file_search_path(pack('wam_common_lisp/..'),M).
 % skipped_dirs(M):-expand_file_search_path(pack(pfc),M),nonvar(M).
 
 
 ignore_mpreds_in_file:-if_defined(t_l:disable_px,fail),!.
 ignore_mpreds_in_file:-prolog_load_context(file,F),ignore_mpreds_in_file(F),!.
-ignore_mpreds_in_file:-prolog_load_context(source,F),ignore_mpreds_in_file(F),!.
+ignore_mpreds_in_file:-prolog_load_context(source,F),\+prolog_load_context(file,F),ignore_mpreds_in_file(F),!.
 
-ignore_mpreds_in_file(F):-if_defined(baseKB:registered_mpred_file(F),fail),!,fail.
-ignore_mpreds_in_file(F):-if_defined(baseKB:ignore_file_mpreds(F),fail),!.
-ignore_mpreds_in_file(F):-skipped_dirs(Base),atom(Base),atom_concat(Base,_,F),!.
-ignore_mpreds_in_file(F):-atom(F),baseKB:ignore_file_mpreds(Base),atom(Base),atom_concat(Base,_,F),!.
+ignore_mpreds_in_file(F):-nonvar(F),if_defined(baseKB:registered_mpred_file(F),fail),!,fail.
+ignore_mpreds_in_file(S):- lmconf:should_virtualize_source_file(S),!,fail.
+ignore_mpreds_in_file(F):-use_file_filter_cached(baseKB:ignore_file_mpreds(F)).
 
+use_file_filter_cached(Module:Check):- 
+ Check =..[Include,F],
+ (Module:Check *-> true ;
+  ((call(Module:Include,Base), 
+   (Base=F -> true ;
+     (atom(F),atom(Base),    
+      (atom_concat(Base,_,F);atom_concat(_,Base,F)),
+       asserta(Module:Check)))))).
+
+:- asserta(baseKB:ignore_file_mpreds('.data')).
 %% declared_to_wrap(M, ?Functor, ?Arity, ?Wrapper) is semidet.
 %
 % Virtualizer Shared Code.
@@ -338,6 +350,7 @@ virtualize_ereq(functorIsMacro,1).
 virtualize_ereq(prologSideEffects,1).
 
 virtualize_ereq(singleValuedInArg,2).
+virtualize_ereq(singleValuedInArgAX,3).
 virtualize_ereq(support_hilog,2).
 virtualize_ereq(rtNotForUnboundPredicates,1).
 
@@ -532,7 +545,7 @@ map_compound_args(Pred,In,Out):- must(( compound(In), In=..[F|InL],maplist(Pred,
 map_compound_args(Pred,Args,In,Out):- must(( compound(Args), compound(In), Args=..[_|ArgsL],In=..[F|InL],maplist(Pred,ArgsL,InL,OutL),Out=..[F|OutL])).
 
 could_safe_virtualize:- 
-     is_file_virtualized,
+     is_file_virtualize_allowed,
      prolog_load_context(module,M), 
 
      \+ clause_b(mtHybrid(M)),
@@ -563,7 +576,9 @@ safe_virtualize_0(Goal,How,call(How,Goal)).
 
 
 :- dynamic(lmconf:should_virtualize_source_file/1).
-virtualize_source_file:- prolog_load_context(source,F),virtualize_source_file(F),prolog_load_context(file,F1),virtualize_source_file(F1).
+virtualize_source_file:- 
+ prolog_load_context(source,F),virtualize_source_file(F),
+ prolog_load_context(file,F1),virtualize_source_file(F1).
 
 virtualize_source_file(F1):- absolute_file_name(F1,F,[file_type(prolog),access(read),file_errors(error)]),
   (lmconf:should_virtualize_source_file(F)->true;asserta(lmconf:should_virtualize_source_file(F))).
@@ -578,11 +593,15 @@ virtualized_goal_expansion(Head, In,Out):-
         dmsg( be4 :- In),
         dmsg( out :- Out)))))).
 
-is_file_virtualized:- prolog_load_context(source,S),
-  (is_file_virtualized(S)-> true ;
-   (prolog_load_context(file,F),F\==S,is_file_virtualized(F))).
+is_file_virtualize_allowed:-  
+  prolog_load_context(source,S),
+  (is_file_virtualize_allowed(S)-> true ;
+   (prolog_load_context(file,F),F\==S,is_file_virtualize_allowed(F))).
 
-is_file_virtualized(S):- lmconf:should_virtualize_source_file(S).
+
+is_file_virtualize_allowed(S):- lmconf:should_virtualize_source_file(S),!.
+is_file_virtualize_allowed(S):- ignore_mpreds_in_file(S),!,fail.
+is_file_virtualize_allowed(S):- atom_concat(_,'.plv',S).
 
 decl_wrapped(M,F,A,How):-
  assert_if_new(rdf_rewrite:arity(F,A)), % TODO puts this in Local Mt
@@ -633,7 +652,7 @@ same_terms(AAA,BBB):-  AAA=..[F|AA],BBB=..[F|BB],!,same_terms(AA,BB).
 :-   dynamic(system:file_body_expansion/2).
 :- use_module(system:library(subclause_expansion)).
 system:file_body_expansion(Head,In,Out):- compound(In), 
-  is_file_virtualized,   
+  is_file_virtualize_allowed,   
   virtualized_goal_expansion(Head, In,Out).
   
 
@@ -644,11 +663,10 @@ system:file_body_expansion(Head,In,Out):- compound(In),
 :- dynamic(system:goal_expansion/4).
 :- module_transparent(system:goal_expansion/4).
 system:goal_expansion(In,P,Out,PO):- 
-   compound(In), nonvar(P),
-   is_file_virtualized,
-   nb_current('$term', Head :- FileTerm),In == FileTerm,
-   virtualized_goal_expansion(Head,In,Out),
-  PO=P.
+   notrace((compound(In), nonvar(P))),   
+   notrace((nb_current('$term', Head :- FileTerm),In == FileTerm)),   
+   notrace(is_file_virtualize_allowed)->
+   virtualized_goal_expansion(Head,In,Out)-> PO=P.
 
 :- endif.
 

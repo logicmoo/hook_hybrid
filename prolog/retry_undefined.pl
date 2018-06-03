@@ -72,12 +72,34 @@ dumpST_dbreak:- dumpST,break.
 % hybrid_support (like spft/3) must be defined directly in every module and then aggregated thru genlMts (thus to baseKB)
 
 is_parent_goal(G):- prolog_current_frame(F),is_parent_goal(F,G).
-is_parent_goal(F,G):-prolog_frame_attribute(F,parent_goal, G).
+% The user must ensure the checked parent goal is not removed from the stack due 
+% to last-call optimisation 
+is_parent_goal(F,G):- nonvar(G),prolog_frame_attribute(F,parent_goal, G).
+%and be aware of the slow operation on deeply nested calls.
+is_parent_goal(F,G):- prolog_frame_attribute(F,parent,P),parent_frame_goal(P,G).
+
+parent_frame_goal(F,V):- parent_frame_goal_0(F,V0),contains_goalf(V0,V).
+parent_frame_goal_0(F,V):- prolog_frame_attribute(F,goal,V);
+   (prolog_frame_attribute(F,parent,P),parent_frame_goal_0(P,V)).
+
+contains_goalf(V0,V):- nonvar(V),same_goalf(V0,V),!.
+contains_goalf(V0,_):- \+ compound(V0),!,fail.
+contains_goalf(V0,V):- var(V),same_goalf(V0,V).
+contains_goalf(_:V0,V):- !, contains_goalf(V0,V).
+contains_goalf('$execute_directive_3'(V0),V):-!, same_goalf(V0,V).
+contains_goalf('<meta-call>'(V0),V):-!, same_goalf(V0,V).
+contains_goalf(catch(V0,_,_),V):- same_goalf(V0,V).
+contains_goalf(catch(_,_,V0),V):- same_goalf(V0,V).
+same_goalf(V,V).
+
 
 % make sure we ignore calls to predicate_property/2  (or thus '$define_predicate'/1)
-uses_predicate(_DEF,_,_,_,_,error):- 
+uses_predicate(_DEF,_,_,_,_,Error):- 
    prolog_current_frame(F), (is_parent_goal(F,'$define_predicate'(_));
-   (is_parent_goal(F,'assert_u'(_)));is_parent_goal(F,'$syspreds':property_predicate(_,_))),!.
+   (is_parent_goal(F,_:'assert_u'(_)));is_parent_goal(F,'$syspreds':property_predicate(_,_))),!,
+   error = Error.
+
+uses_predicate(_Was,_CM,_M,_F,_A,Error):- is_parent_goal(check:check),!,Error=error.
 uses_predicate(_Was,_CM,_M,_F,_A,Error):- is_parent_goal(check:check),!,Error=error.
 uses_predicate(_Was,_CM,_M,_F,_A,Error):- show_success(is_parent_goal('$define_predicate')),!,Error=error.
 

@@ -174,8 +174,9 @@ system:do_call_inherited(MtAbove,Query):- ireq(MtAbove:Query).
 
 %make_as_dynamic(M,F,A):- make_as_dynamic(make_as_dynamic,M,F,A).
 
-make_as_dynamic(Reason,M,F,A):- Reason= kb_global(_),!,make_as_dynamic_realy(Reason,M,F,A),system:import(M:F/A).
+make_as_dynamic(Reason,M,F,A):- Reason= kb_global(_),!,make_as_dynamic_realy(Reason,M,F,A),user:import(M:F/A),system:import(M:F/A).
 make_as_dynamic(Reason,M,F,A):- Reason= kb_local(_),!,make_as_dynamic_realy(Reason,M,F,A),!. 
+make_as_dynamic(Reason,M,F,A):- Reason= decl_kb_type(_,_),!,make_as_dynamic_realy(Reason,M,F,A),!. 
 make_as_dynamic(Reason,M,F,A):- F== is_pfc_file, break, make_as_dynamic_realy(Reason,M,F,A).
 make_as_dynamic(Reason,M,F,A):- dmsg(make_as_dynamic(Reason,M,F,A)),!,make_as_dynamic_realy(Reason,M,F,A),!. 
 
@@ -372,7 +373,8 @@ decl_kb_type(Type,M,F,A):- check_mfa(Type,M,F,A),!,
     (asserta(lmcache:already_decl(Type,M,F,A)),do_decl_kb_type(Type,Type,M,F,A))),!.
 decl_kb_type(Type,M,F,A):- trace_or_throw(bad_decl_kb_type(Type,M,F,A)).
 
-do_decl_kb_type(Type,Type,M,prologSingleValued,0):- trace_or_throw(do_decl_kb_type(Type,Type,M,prologSingleValued,0)).
+do_decl_kb_type(Type,Type,M,prologSingleValued,0):- 
+  trace_or_throw(do_decl_kb_type(Type,Type,M,prologSingleValued,0)).
 
 do_decl_kb_type(Type,Type,M,F,A):-functor(PI,F,A),do_decl_kb_type_1(Type,M,F,A,PI),!.
 
@@ -403,8 +405,10 @@ do_decl_kb_type_1(Type,M,F,A,PI):- do_decl_kb_type_2(Type,M,F,A,PI),!.
 do_decl_kb_type_2(Type,M,F,A,_PI):- 
  nop(dmsg((do_decl_kb_type(Type,M,F,A)))),
  must_det_l((
-  make_as_dynamic(kb_local(M:F/A),M,F,A),
-  create_predicate_inheritance(kb_local(M:F/A),M,F,A),
+  Why = decl_kb_type(Type,M:F/A),
+  make_as_dynamic(Why,M,F,A),
+  ain(baseKB:mpred_prop(M,F,A,Type)),
+  create_predicate_inheritance(Why,M,F,A),
   decl_wrapped(M,F,A,ereq))).
 
 
