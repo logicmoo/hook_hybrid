@@ -116,7 +116,17 @@ now_inherit_above(Reason,CallerMt,F,A):-
    functor(Goal,F,A),
    CallerMt:import(inherit_above/2),
    CallerMt:import(do_ihherit_above/2),
-   CallerMt:assert_if_new(( CallerMt:Goal :- inherit_above(CallerMt,Goal))).
+   get_inherit_above_clause(CallerMt,Goal,Head,Body),
+   CallerMt:assertz_new(Head:-Body).
+
+% get_inherit_above_clause(CallerMt,Goal,Head,Body)
+get_inherit_above_clause(From,Goal,IAHead,IABody):-
+   (nonvar(Goal)->(strip_module(Goal,_,Call), functor(Call,F,A),functor(Head,F,A)) ; Goal=Head),
+   IAHead = From:Head,
+   IABody = (zwc,inherit_above(From,Head)).
+
+awc:-true.
+zwc:-true.
 
 :- module_transparent(system:inherit_above/2).
 :- export(system:inherit_above/2).
@@ -135,7 +145,8 @@ never_move(nt,_).
 never_move(proven_tru,_).
 never_move(is_pfc_file,_):- break.
 
-never_move(_,_).
+% never_move(_,_).
+
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
 :- thread_local(t_l:exact_kb/1).
@@ -145,11 +156,13 @@ system:do_inherit_above(Mt,QueryIn):-
    functor(QueryIn,F,A),\+ never_move(F,A),
    predicate_property(QueryIn,number_of_clauses(N)),
    Mt:nth_clause(QueryIn,N,Ref),clause(_,Body,Ref),
-   Body\=inherit_above(Mt,QueryIn),
-   once((Mt:clause(QueryIn,inherit_above(Mt,_),Kill),
-   erase(Kill),functor(Query,F,A),
-   dmsg(moving(inherit_above(Mt,Query))),
-   Mt:assertz((Query:-inherit_above(Mt,Query))))),fail.
+   get_inherit_above_clause(Mt,QueryIn,IAHead,IABody),
+   Body\=IABody,
+   once((Mt:clause(IAHead,IABody,Kill),
+   erase(Kill),% functor(QueryIn,F,A),
+   dmsg(moving(IAHead)), % inherit_above(Mt,Query)
+   Mt:assertz(IAHead:-IABody))),fail.
+   
 
   % TODO   no_repeats(MtAbove,(clause(Mt:genlMt(Mt,MtAbove),true);clause(baseKB:genlMt(Mt,MtAbove),true))),
 

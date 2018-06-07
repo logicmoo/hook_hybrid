@@ -682,7 +682,7 @@ clause_asserted_i(Head):-
 
 
 clause_asserted_i(H,B):- clause_asserted_i(H,B,_).
-clause_asserted_i(MH,B,R):- ground(MH:B),!,system:clause(MH,B,R),system:clause(MHR,BR,R),ground(MHR:BR).
+clause_asserted_i(MH,B,R):- ground(MH:B),!,with_quiet_vars_lock((system:clause(MH,B,R),system:clause(MHR,BR,R),ground(MHR:BR))).
 clause_asserted_i(MH,B,R):- copy_term(MH:B,MHB),clause_i(MH,B,R),variant(MH:B,MHB).
 
 
@@ -755,8 +755,8 @@ predicate_property_safe(P,PP):- quietly(predicate_property(P,PP)).
 %
 
 
-clause_b(M:Goal):- !, M:clause(Goal,B),M:call(B).
-clause_b(Goal):- (clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal).
+clause_b(M:Goal):- !, with_quiet_vars_lock((M:clause(Goal,B))),M:call(B).
+clause_b(Goal):- with_quiet_vars_lock((clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal)).
 
 % lookup_u/cheaply_u/call_u/clause_b
 %clause_b(Goal):-  baseKB:call(call,Goal).
@@ -783,8 +783,8 @@ clause_b(Goal):- (clause(Goal,B),call(B))*->true;clause_b(baseKB:Goal).
 %
 clause_true(G):- !, clause_b(G).
 
-clause_true(M:G):-!,system:clause(M:G,true)*->true;(current_module_ordered(M2),system:clause(M2:G,true)).
-clause_true(G):- quietly((current_module_ordered(M), \+ \+  system:clause(M:G,_,_))),!, system:clause(M:G,true).
+clause_true(M:G):-!,with_quiet_vars_lock((system:clause(M:G,true)*->true;(current_module_ordered(M2),system:clause(M2:G,true)))).
+clause_true(G):- with_quiet_vars_lock((quietly((current_module_ordered(M), \+ \+  system:clause(M:G,_,_))),!, system:clause(M:G,true))).
 %clause_true(M:G):- predicate_property(M:G,number_of_clauses(_)),!,system:clause(M:G,true).
 %clause_true(_:G):-!,predicate_property(M:G,number_of_clauses(_)),system:clause(M:G,true).
 %clause_true(G):-!,predicate_property(M:G,number_of_clauses(_)),system:clause(M:G,true).
@@ -794,7 +794,7 @@ clause_true_anywhere(G):- strip_module(G,M,S),!,
   functor(P,F,A),
   ((M2=M; M2=baseKB ;(current_module_ordered(M2),M2\=M)),
     current_predicate(M2:P)),!,
-    system:clause(M2:S,B,Ref),
+    with_quiet_vars_lock(system:clause(M2:S,B,Ref)),
      (B==true->! ;
     (clause_property(Ref,module(M22));M22=M2),!,call(M22:B)).
 
