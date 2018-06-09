@@ -264,10 +264,10 @@ prolog:make_hook(after, C):- retract(lmcache:was_retry_undefined(WAS,C)),set_pro
 :- multifile(user:exception/3).
 :- module_transparent(user:exception/3).
 :- dynamic(user:exception/3).
-
+/*
 user:exception(undefined_predicate, F/A, ActionO):- !, strip_module(F/A,CM,_), 
   user_exception_undefined_predicate(CM,CM,F,A, ActionO).
 user:exception(undefined_predicate, M:F/A, ActionO):- !, strip_module(F/A,CM,_), 
   user_exception_undefined_predicate(CM,M,F,A, ActionO).
 
-
+*/
