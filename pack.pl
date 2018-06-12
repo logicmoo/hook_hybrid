@@ -7,8 +7,8 @@ author('Douglas R. Miles','logicmoo@gmail.com').
 author('Douglas Miles', 'http://www.linkedin.com/in/logicmoo').
 packager('TeamSPoon', 'https://github.com/TeamSPoon/').
 maintainer('TeamSPoon', 'https://github.com/TeamSPoon/').
-home('https://github.com/TeamSPoon/prologmud.git').
-download( 'https://github.com/TeamSPoon/prologmud/release/*.zip').
+home('https://github.com/TeamSPoon/hook_hybrid.git').
+download( 'https://github.com/TeamSPoon/hook_hybrid/release/*.zip').
 requires(must_trace).
 requires(loop_check).
 requires(subclause_expansion).
