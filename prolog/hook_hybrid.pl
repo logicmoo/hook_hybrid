@@ -135,7 +135,7 @@ with_no_mpred_expansions(Goal):-
 
 
 insane_module(hook_database).
-% insane_module(user) :- \+ '$current_source_module'(user).
+insane_module(user) :- \+ '$current_source_module'(user).
 insane_module(mpred_core).
 insane_module(hook_hybrid).
 insane_module(mpred_kb_ops).
@@ -154,9 +154,12 @@ module_sanity_check(NewModule):-
 with_source_module(NewModule,Goal):-  
   module_sanity_check(NewModule),
    '$current_source_module'(OldModule),
-   each_call_cleanup(
+   with_source_module(NewModule,OldModule,Goal).
+
+with_source_module(NewModule,OldModule,Goal):-
+   scce_orig(
       '$set_source_module'(NewModule),
-          Goal, 
+          call(Goal),
       '$set_source_module'(OldModule)).
 
 %% call_from_module( +NewModule, :Goal) is semidet.
@@ -170,10 +173,13 @@ call_from_module(NewModule,( H:-B ) ):- !, must(nonvar(H)),call_from_module(NewM
 call_from_module(NewModule,Goal):-
    '$current_typein_module'(OldModule),
    '$current_source_module'(OldSModule),
+   call_from_module(NewModule,OldSModule,OldModule,Goal).
+
+call_from_module(NewModule,OldSModule,OldModule,Goal):-
    strip_module(Goal,_,Call),
     scce_orig(
       ('$set_typein_module'(NewModule),'$set_source_module'(NewModule)), 
-      NewModule:Call,
+      call(NewModule:Call),
       ('$set_source_module'(OldSModule),'$set_typein_module'(OldModule))).
 
 dump_break:- prolog_stack:backtrace(8000),dtrace. % system:dbreak.

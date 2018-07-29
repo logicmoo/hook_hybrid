@@ -70,7 +70,7 @@ dumpST_dbreak:- dumpST,break.
 % :- dynamic baseKB:mpred_prop/4.
 
 % hybrid_support (like spft/3) must be defined directly in every module and then aggregated thru genlMts (thus to baseKB)
-
+/*
 is_parent_goal(G):- prolog_current_frame(F),is_parent_goal(F,G).
 % The user must ensure the checked parent goal is not removed from the stack due 
 % to last-call optimisation 
@@ -91,7 +91,7 @@ contains_goalf('<meta-call>'(V0),V):-!, same_goalf(V0,V).
 contains_goalf(catch(V0,_,_),V):- same_goalf(V0,V).
 contains_goalf(catch(_,_,V0),V):- same_goalf(V0,V).
 same_goalf(V,V).
-
+*/
 
 % make sure we ignore calls to predicate_property/2  (or thus '$define_predicate'/1)
 uses_predicate(_DEF,_,_,_,_,Error):- 

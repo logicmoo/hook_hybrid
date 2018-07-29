@@ -141,16 +141,17 @@ never_move(mpred_prop,_).
 never_move(meta_argtypes,_).
 never_move(pt,_).
 never_move(bt,_).
-never_move(nt,_).
+never_move(tc,_).
 never_move(proven_tru,_).
 never_move(is_pfc_file,_):- break.
 
-% never_move(_,_).
+%never_move(_,_).
 
 :- module_transparent(system:do_inherit_above/2).
 :- export(system:do_inherit_above/2).
 :- thread_local(t_l:exact_kb/1).
 system:do_inherit_above(Mt,_):- t_l:exact_kb(Mt),!,fail.
+system:do_inherit_above(user,_):- context_module(user),!,fail.
 
 system:do_inherit_above(Mt,QueryIn):- 
    functor(QueryIn,F,A),\+ never_move(F,A),

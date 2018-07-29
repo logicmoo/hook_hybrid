@@ -546,8 +546,7 @@ map_compound_args(Pred,Args,In,Out):- must(( compound(Args), compound(In), Args=
 
 could_safe_virtualize:- 
      is_file_virtualize_allowed,
-     prolog_load_context(module,M), 
-
+     prolog_load_context(module,M),
      \+ clause_b(mtHybrid(M)),
      \+ ((current_prolog_flag(dialect_pfc,fwc); 
        (source_location(F,_W),( atom_concat(_,'.pfc.pl',F);atom_concat(_,'.plmoo',F);atom_concat(_,'.clif',F);atom_concat(_,'.pfc',F))))).
@@ -600,8 +599,8 @@ is_file_virtualize_allowed:-
 
 
 is_file_virtualize_allowed(S):- lmconf:should_virtualize_source_file(S),!.
-is_file_virtualize_allowed(S):- ignore_mpreds_in_file(S),!,fail.
 is_file_virtualize_allowed(S):- atom_concat(_,'.plv',S).
+%is_file_virtualize_allowed(S):- ignore_mpreds_in_file(S),!,fail.
 
 decl_wrapped(M,F,A,How):-
  assert_if_new(rdf_rewrite:arity(F,A)), % TODO puts this in Local Mt
