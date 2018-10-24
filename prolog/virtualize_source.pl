@@ -30,6 +30,7 @@ virtualize_ereq/2,
 virtualize_source/3,
 virtualize_source_file/0,
 virtualize_source_file/1,
+virtualize_source_file/2,
 could_safe_virtualize/0,
 vwc/0
 ]).
@@ -55,6 +56,7 @@ virtualize_ereq/2,
 virtualize_source/3,
 virtualize_source_file/0,
 virtualize_source_file/1,
+virtualize_source_file/2,
 vwc/0
           )).
 
@@ -97,13 +99,15 @@ skipped_dirs0(M):-expand_file_search_path(pack('swish/..'),M).
 skipped_dirs0(M):-expand_file_search_path(pack('wam_common_lisp/..'),M).
 % skipped_dirs(M):-expand_file_search_path(pack(pfc),M),nonvar(M).
 
+:- dynamic(lmconf:should_virtualize_source_file/2).
 
+% if_defined(G,Else) = if G is defined then call G.. else call Else
 ignore_mpreds_in_file:-if_defined(t_l:disable_px,fail),!.
 ignore_mpreds_in_file:-prolog_load_context(file,F),ignore_mpreds_in_file(F),!.
 ignore_mpreds_in_file:-prolog_load_context(source,F),\+prolog_load_context(file,F),ignore_mpreds_in_file(F),!.
 
 ignore_mpreds_in_file(F):-nonvar(F),if_defined(baseKB:registered_mpred_file(F),fail),!,fail.
-ignore_mpreds_in_file(S):- lmconf:should_virtualize_source_file(S),!,fail.
+ignore_mpreds_in_file(S):- lmconf:should_virtualize_source_file(S,true),!,fail.
 ignore_mpreds_in_file(F):-use_file_filter_cached(baseKB:ignore_file_mpreds(F)).
 
 use_file_filter_cached(Module:Check):- 
@@ -574,13 +578,16 @@ safe_virtualize_0(Goal,How,call(How,Goal)).
 
 
 
-:- dynamic(lmconf:should_virtualize_source_file/1).
 virtualize_source_file:- 
  prolog_load_context(source,F),virtualize_source_file(F),
  prolog_load_context(file,F1),virtualize_source_file(F1).
 
-virtualize_source_file(F1):- absolute_file_name(F1,F,[file_type(prolog),access(read),file_errors(error)]),
-  (lmconf:should_virtualize_source_file(F)->true;asserta(lmconf:should_virtualize_source_file(F))).
+virtualize_source_file(F1):- virtualize_source_file(F1,true).
+
+virtualize_source_file(F1,Value):- 
+  absolute_file_name(F1,F,[file_type(prolog),access(read),file_errors(error)]),
+  retractall(lmconf:should_virtualize_source_file(F,_)),
+  asserta(lmconf:should_virtualize_source_file(F,Value)).
 
 
 virtualized_goal_expansion(Head, In,Out):-
@@ -592,13 +599,15 @@ virtualized_goal_expansion(Head, In,Out):-
         dmsg( be4 :- In),
         dmsg( out :- Out)))))).
 
+is_file_virtualize_allowed:- prolog_load_context(file,F),lmconf:should_virtualize_source_file(F,false),!,fail.
+is_file_virtualize_allowed:- prolog_load_context(source,F),lmconf:should_virtualize_source_file(F,false),!,fail.
 is_file_virtualize_allowed:-  
   prolog_load_context(source,S),
   (is_file_virtualize_allowed(S)-> true ;
    (prolog_load_context(file,F),F\==S,is_file_virtualize_allowed(F))).
 
 
-is_file_virtualize_allowed(S):- lmconf:should_virtualize_source_file(S),!.
+is_file_virtualize_allowed(S):- lmconf:should_virtualize_source_file(S,TF),!,TF==true.
 is_file_virtualize_allowed(S):- atom_concat(_,'.plv',S).
 %is_file_virtualize_allowed(S):- ignore_mpreds_in_file(S),!,fail.
 

@@ -277,14 +277,18 @@ find_and_call(_,_,  G):-current_predicate(_,C:G),!,found_call(C,G).
 find_and_call(C,M,  G):-dtrace,C:on_x_debug(M:G).
 
 
-current_module_ordered0(M):- prolog_load_context(module,M).
-current_module_ordered0(M):- context_module(M).
-current_module_ordered0(M):- '$current_typein_module'(M).
+current_module_ordered_here(M):- context_module(M).
+current_module_ordered_here(M):- prolog_load_context(module,M).
+current_module_ordered_here(M):- '$current_typein_module'(M).
 
-current_module_ordered(O):- current_module_ordered0(O).
-current_module_ordered(user).
-current_module_ordered(baseKB).
-current_module_ordered(X):-current_module(X).
+current_module_ordered_all(O,M):- no_repeats(O,current_module_ordered_here(O)),import_module(O,M).
+current_module_ordered_all(user).
+current_module_ordered_all(baseKB).
+current_module_ordered_all(X):-current_module(X).
+
+
+current_module_ordered(X):- no_repeats(X,current_module_ordered_all(X)).
+
 %= 	 	 
 
 %% find_and_call( :TermG) is semidet.

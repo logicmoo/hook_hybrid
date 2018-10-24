@@ -143,7 +143,7 @@ never_move(pt,_).
 never_move(bt,_).
 never_move(tc,_).
 never_move(proven_tru,_).
-never_move(is_pfc_file,_):- break.
+never_move(is_pfc_file,_):- dumpST,break.
 
 %never_move(_,_).
 
@@ -184,11 +184,14 @@ system:do_call_inherited(MtAbove,Query):- ireq(MtAbove:Query).
   
 
 
-
+export_everywhere(system,F,A):- !, system:export(system:F/A).
+export_everywhere(user,F,A):- !,user:export(user:F/A),system:import(user:F/A),baseKB:import(user:F/A).
+export_everywhere(baseKB,F,A):- !, baseKB:export(baseKB:F/A),system:import(baseKB:F/A),user:import(baseKB:F/A).
+export_everywhere(M,F,A):- M:export(M:F/A),system:import(M:F/A),user:import(M:F/A),baseKB:import(M:F/A).
 
 %make_as_dynamic(M,F,A):- make_as_dynamic(make_as_dynamic,M,F,A).
 
-make_as_dynamic(Reason,M,F,A):- Reason= kb_global(_),!,make_as_dynamic_realy(Reason,M,F,A),user:import(M:F/A),system:import(M:F/A).
+make_as_dynamic(Reason,M,F,A):- Reason= kb_global(_),!,make_as_dynamic_realy(Reason,M,F,A),export_everywhere(M,F,A).
 make_as_dynamic(Reason,M,F,A):- Reason= kb_local(_),!,make_as_dynamic_realy(Reason,M,F,A),!. 
 make_as_dynamic(Reason,M,F,A):- Reason= decl_kb_type(_,_),!,make_as_dynamic_realy(Reason,M,F,A),!. 
 make_as_dynamic(Reason,M,F,A):- F== is_pfc_file, break, make_as_dynamic_realy(Reason,M,F,A).
@@ -197,7 +200,7 @@ make_as_dynamic(Reason,M,F,A):- dmsg(make_as_dynamic(Reason,M,F,A)),!,make_as_dy
 :- multifile(user:message_hook/3).
 :- dynamic(user:message_hook/3).
 user:message_hook(import_private(Module, Private),_,_):- Module==system,!, nop(dmsg(import_private(Module, Private))).
-user:message_hook(import_private(Module, Private),_,_):- dmsg(import_private(Module, Private)).
+user:message_hook(import_private(Module, Private),_,_):- current_prolog_flag(runtime_message_hook, true), dmsg(import_private(Module, Private)).
 
 make_as_dynamic_realy(Reason,M,F,A):- 
  must_det_l((
@@ -299,7 +302,7 @@ pred_decl_kb_mfa_type(M,F,A,Other):- lmcache:already_decl(Other,M,F,A).
 
 
 % TODO comment this out!
-+decl_kb_global(M,'==>',A):- !, dmsg(skip(decl_kb_global(M,'==>',A))).
+decl_kb_global(M,'==>',A):- !, dmsg(warn(skip(decl_kb_global(M,'==>',A)))).
 
 decl_kb_global(M,F,A):- check_mfa(kb_global,M,F,A),!,
   (lmcache:already_decl(kb_global,M,F,A)->true;
@@ -424,6 +427,28 @@ do_decl_kb_type_2(Type,M,F,A,_PI):-
   ain(baseKB:mpred_prop(M,F,A,Type)),
   create_predicate_inheritance(Why,M,F,A),
   decl_wrapped(M,F,A,ereq))).
+
+expand_globals(In,_):- notrace(( \+ callable(In);In\=(':'(_,_)))),!,fail.
+expand_globals((P:-B),(PO:-B)):-!,expand_globals(P,PO).
+expand_globals(P,Out):-
+   (compound(P)->functor(P,F,A);F=P,A=0),
+   expand_already_decl(P,F,A,Out).
+
+expand_already_decl(P,F,A,Out):- lmcache:already_decl(kb_global,M,F,A),Out=':'(M,P),!.
+expand_already_decl(P,F,A,Out):- lmcache:already_decl(kb_shared,M,F,A),Out=':'(M,P),!.
+
+:- multifile(system:goal_expansion/4).
+:- dynamic(system:goal_expansion/4).
+:- module_transparent(system:goal_expansion/4).
+system:goal_expansion(In,P,Out,PO):-  expand_globals(In,Out),P=PO.
+
+:- multifile(system:term_expansion/4).
+:- dynamic(system:term_expansion/4).
+:- module_transparent(system:term_expansion/4).
+system:term_expansion(In,P,Out,PO):-
+   % checks if asserting
+   notrace((nb_current('$term', Term),In == Term ; (Term=(Head:-_),In == Head))),
+   expand_globals(In,Out),P=PO.
 
 
 :- fixup_exports.

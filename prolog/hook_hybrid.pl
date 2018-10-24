@@ -134,6 +134,66 @@ with_no_mpred_expansions(Goal):-
 :- system:import(with_no_mpred_expansions/1).
 
 
+
+
+maybe_add_import_module(A,B):-maybe_add_import_module(A,B,start).
+%TODO
+maybe_add_import_module(_From,_To,_):- !.
+maybe_add_import_module(_From,user,_Start).
+maybe_add_import_module(From,To,_):- (call(ereq,mtCycL(From)); call(ereq,mtCycL(To))),!.
+maybe_add_import_module(From,To,_):- default_module(From,To),!.
+maybe_add_import_module(user,_,start):-!.
+maybe_add_import_module(baseKB,_,_):-!.
+maybe_add_import_module(_,baseKB,_):-!.
+maybe_add_import_module(From,To,Start):-  
+   maybe_delete_import_module(To,From),
+   catch(nop(add_import_module(From,To,Start)),E,writeln(E=add_import_module(From,To,Start))).
+
+maybe_delete_import_module(_From,To):- To = user,!.
+maybe_delete_import_module(_From,To):- To = system,!.
+maybe_delete_import_module(From,To):- dmsg(ignore(system:delete_import_module(From,To))).
+
+
+
+fix_baseKB_imports:- 
+   ignore(add_import_module(baseKB,system,start)),
+   ignore(delete_import_module(baseKB,pfc_lib)),
+   ignore(delete_import_module(baseKB,user)),
+   ignore(delete_import_module(user,baseKB)),
+   forall((import_module(baseKB,X),X\==system),ignore(delete_import_module(baseKB,X))),
+   forall(current_module(M),forall(import_module(M,baseKB),ignore(delete_import_module(M,baseKB)))).
+
+:- initialization(fix_baseKB_imports,restore).
+:- initialization(fix_baseKB_imports,program).
+
+ensure_op(P,FXY,MOP):- strip_module(MOP,M,OP),ensure_op(P,FXY,M,OP).
+ensure_op(P,FXY,M,OP):- current_op(P,FXY,M:OP),!.
+ensure_op(P,FXY,M,OP):- set_op(P,FXY,M:OP),!.
+
+set_op(P,FXY,MOP):- strip_module(MOP,M,OP),set_op(P,FXY,M,OP).
+set_op(P,FXY,system,OP):-!, locally(set_prolog_flag(access_level,system),op(P,FXY,system:OP)).
+set_op(P,FXY,M,OP):- current_op(WAS,FXY,system:OP),!,
+    locally(set_prolog_flag(access_level,system),(op(0,FXY,system:OP),op(P,FXY,M:OP),op(WAS,FXY,system:OP))).
+set_op(P,FXY,M,OP):- op(P,FXY,M:OP),!.
+
+some_modules(M,UM):- ground(M:UM),!.
+some_modules(M,UM):- var(M),strip_module(_,M,_),!,some_modules(M,UM).
+some_modules(M,UM):- no_repeats(UM,(default_module(M,UM);context_module(UM);current_module(UM))).
+
+current_m_op(P,FXY,OP,UM):- var(OP),!,current_op(P,FXY,OP),current_m_op(P,FXY,OP,UM).
+current_m_op(P,FXY,M:OP,UM):- var(M),!,current_m_op_m(P,FXY,M,OP,UM).
+current_m_op(P,FXY,OP,UM):- atom(OP),strip_module(_,M,_),!,current_m_op_m(P,FXY,M,OP,UM).
+current_m_op(P,FXY,MOP,UM):- strip_module(MOP,M,OP),current_m_op_m(P,FXY,M,OP,UM).
+
+current_m_op_m(P,FXY,M,OP,UM):- var(M),!,some_modules(_,M),current_m_op_m(P,FXY,M,OP,UM).
+current_m_op_m(P,FXY,M,OP,UM):- var(OP),!,current_op(P,FXY,OP),current_m_op_m(P,FXY,M,OP,UM).
+current_m_op_m(P,FXY,M,OP,UM):- some_modules(M,UM),current_op(P,FXY,UM:OP),
+  default_module(M,UM),
+  \+ (default_module(M,UM),UM\==M, current_op(P,FXY,M:OP)).
+
+maybe_ensure_op(P,FXY,MOP):- strip_module(MOP,M,OP),
+  (current_m_op_m(WAS,FXY,M,OP,UM) -> dmsg(current_m_op_m(P->WAS,FXY,UM->M,OP)); set_op(P,FXY,M,OP)).
+
 insane_module(hook_database).
 insane_module(user) :- \+ '$current_source_module'(user).
 insane_module(mpred_core).
@@ -141,6 +201,7 @@ insane_module(hook_hybrid).
 insane_module(mpred_kb_ops).
 insane_module(mpred_type_isa).
 insane_module(pfc_lib).
+insane_module(system).
 
 module_sanity_check(NewModule):-
   ( ( \+ insane_module(NewModule));
